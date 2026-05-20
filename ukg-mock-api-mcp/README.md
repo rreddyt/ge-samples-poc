@@ -43,10 +43,10 @@ By default, Cloud Run services run under the **Compute Engine Default Service Ac
 
 ## 📂 2. PoC Project Structure
 
-The project is organized as follows inside the `hr-intake-agent-poc/` folder:
+The project is organized as follows inside the `ukg-mock-api-mcp/` folder:
 
 ```text
-hr-intake-agent-poc/
+ukg-mock-api-mcp/
 ├── README.md                  # This architecture and setup guide
 ├── Dockerfile                 # Unified container definition for Cloud Run
 ├── requirements.txt           # Locked Python dependencies
@@ -147,7 +147,7 @@ Both services run from the same container image `ukg-mcp-poc-core:latest` but st
 We use an `env.yaml` file to securely manage all project configurations and avoid hardcoding parameters in shell commands.
 
 ### Step 1: Create the `env.yaml` File
-Create a file named `env.yaml` in the `hr-intake-agent-poc/` root directory with placeholders:
+Create a file named `env.yaml` in the `ukg-mock-api-mcp/` root directory with placeholders:
 
 ```yaml
 # env.yaml - Unified Deployment Configurations
