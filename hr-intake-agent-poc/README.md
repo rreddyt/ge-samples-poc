@@ -6,7 +6,42 @@ This server runs on **Google Cloud Run**, is backed by a mock dataset in **Googl
 
 ---
 
-## 📂 1. PoC Project Structure
+## 🛠️ 1. Prerequisites & GCP Configuration
+
+Before building, deploying, and running this PoC, ensure that your Google Cloud environment has the required APIs enabled and appropriate IAM roles assigned.
+
+### 1. Required Google Cloud APIs
+Run the following command to enable all the required services in your project:
+```bash
+gcloud services enable \
+  bigquery.googleapis.com \
+  cloudbuild.googleapis.com \
+  run.googleapis.com \
+  containerregistry.googleapis.com \
+  discoveryengine.googleapis.com
+```
+
+### 2. Required IAM Roles & Permissions
+
+#### A. Deployment Identity (User or CI/CD Service Account)
+The developer identity executing the BigQuery setup scripts and Cloud Run commands requires:
+* **BigQuery Admin** (`roles/bigquery.admin`): To create the dataset, construct tables, and load mock records.
+* **Cloud Build Editor** (`roles/cloudbuild.builds.editor`): To compile and register the Docker image.
+* **Cloud Run Developer** (`roles/run.developer`): To deploy and configure both the API and MCP server.
+* **Service Account User** (`roles/iam.serviceAccountUser`): To delegate runtime execution rights to the service accounts.
+* **Project Viewer** (`roles/viewer`): To fetch basic project descriptors.
+
+#### B. Cloud Run Runtime Service Account
+By default, Cloud Run services run under the **Compute Engine Default Service Account** (`{project_number}-compute@developer.gserviceaccount.com`). If you are securing the default or using a custom runtime service account, it must have the following roles:
+* **BigQuery Data Viewer** (`roles/bigquery.dataViewer`): To read and select data from the mock employee tables.
+* **BigQuery Job User** (`roles/bigquery.jobUser`): To execute query jobs in the BigQuery project.
+
+#### C. Gemini Enterprise Discovery Engine Service Account
+* **Cloud Run Invoker** (`roles/run.invoker`): Granted specifically on the `ukg-mcp-channel` service to allow Gemini Enterprise to securely call the endpoints. *(Automated in Step 6 of Deployment)*.
+
+---
+
+## 📂 2. PoC Project Structure
 
 The project is organized as follows inside the `hr-intake-agent-poc/` folder:
 
@@ -29,7 +64,7 @@ hr-intake-agent-poc/
 
 ---
 
-## 🗄️ 2. BigQuery Sample Data Setup
+## 🗄️ 3. BigQuery Sample Data Setup
 
 The mock UKG data is hosted directly in Google BigQuery. The schema represents employee personal details, compensation rates, corporate job profiles, and retail organizational levels.
 
@@ -55,7 +90,7 @@ python3 scripts/setup_bq_mock_data.py
 
 ---
 
-## 🌐 3. FastAPI Mock UKG REST API
+## 🌐 4. FastAPI Mock UKG REST API
 
 The file **`api/mock_ukg_api.py`** implements a standard, read-only FastAPI application that matches UKG Pro REST endpoints, querying BigQuery in the background.
 
@@ -74,7 +109,7 @@ def run_query(query: str, parameters: list, fetch_one: bool = False):
 
 ---
 
-## 🧰 4. The FastMCP Server
+## 🧰 5. The FastMCP Server
 
 The file **`mcp/mock_ukg_mcp_server.py`** implements the Model Context Protocol (MCP) server.
 
@@ -105,7 +140,7 @@ if __name__ == "__main__":
 
 ---
 
-## 🚀 5. Cloud Build & Deployment Instructions
+## 🚀 6. Cloud Build & Deployment Instructions
 
 Both services run from the same container image `ukg-mcp-poc-core:latest` but start with different execution commands. 
 
@@ -181,7 +216,7 @@ gcloud run services add-iam-policy-binding ukg-mcp-channel \
 
 ---
 
-## 🧠 6. Gemini Enterprise Custom MCP Configuration
+## 🧠 7. Gemini Enterprise Custom MCP Configuration
 
 To add your MCP server as a secure data store/tool in the **Gemini Enterprise (Vertex AI Agent Builder)** console:
 
@@ -226,7 +261,7 @@ To add your MCP server as a secure data store/tool in the **Gemini Enterprise (V
 
 ---
 
-## 🧪 7. Local Client Validation (Pure Python)
+## 🧪 8. Local Client Validation (Pure Python)
 
 To verify your tools work locally over `stdio` **without any Node/npm/gpkg package dependencies**, run the standalone client script:
 
