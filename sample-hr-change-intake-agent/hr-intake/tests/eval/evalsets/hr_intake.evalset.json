@@ -1,0 +1,91 @@
+{
+  "eval_set_id": "hr_intake_eval",
+  "name": "HR Personnel Change Intake Evaluation",
+  "description": "Evaluation set verifying happy path and policy flag flows for promotions, transfers, terminations, and pay adjustments.",
+  "eval_cases": [
+    {
+      "eval_id": "promotion_happy_path_with_pay_increase_flag",
+      "conversation": [
+        {
+          "invocation_id": "turn_1",
+          "user_content": {
+            "parts": [{"text": "I want to promote EMP1001"}]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "get_entra_user_details",
+                "args": {"employee_id": "EMP1001"}
+              },
+              {
+                "name": "get_employee_employment_profile",
+                "args": {"employee_id": "EMP1001"}
+              },
+              {
+                "name": "get_employee_compensation",
+                "args": {"employee_id": "EMP1001"}
+              }
+            ]
+          }
+        },
+        {
+          "invocation_id": "turn_2",
+          "user_content": {
+            "parts": [{"text": "I want to promote Alex Mercer to Store Leader (job code SL01) with a new hourly pay rate of $22.50 starting June 1st, 2026."}]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "validate_pay_thresholds",
+                "args": {"job_code": "SL01"}
+              }
+            ]
+          }
+        },
+        {
+          "invocation_id": "turn_3",
+          "user_content": {
+            "parts": [{"text": "Justification is that Alex Mercer has been performing stellar work as SGA and is fully ready to lead Store 4550."}]
+          }
+        },
+        {
+          "invocation_id": "turn_4",
+          "user_content": {
+            "parts": [{"text": "Submit the request, and notify me via SMS at +1-555-019-1002"}]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "submit_hr_intake_request",
+                "args": {
+                  "summary": "Promotion Request: Alex Mercer (EMP1001) to Store Leader",
+                  "details": {
+                    "employeeId": "EMP1001",
+                    "targetJobTitle": "Store Leader",
+                    "targetJobCode": "SL01",
+                    "proposedPayRate": 22.5,
+                    "effectiveDate": "2026-06-01",
+                    "justification": "Alex Mercer has been performing stellar work as SGA and is fully ready to lead Store 4550."
+                  }
+                }
+              },
+              {
+                "name": "send_notification",
+                "args": {
+                  "recipient_phone_or_email": "+1-555-019-1002",
+                  "channel": "SMS",
+                  "message": "Your personnel change request (Promotion) for Alex Mercer has been submitted successfully. Ticket: HR-80DBA."
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "app",
+        "user_id": "manager_1",
+        "state": {}
+      }
+    }
+  ]
+}

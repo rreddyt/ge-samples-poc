@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+httpx
+mcp[cli]
+google-cloud-bigquery

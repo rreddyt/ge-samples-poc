@@ -1,6 +1,6 @@
-# 🧰 UKG Pro (HR/Payroll) MCP Integration Server PoC
+# 🧰 Microsoft Graph (Entra ID) MCP Integration Server PoC
 
-A complete Proof of Concept (PoC) demonstrating how to integrate a retail store HR and Compensation system (UKG Pro) with **Gemini Enterprise (Vertex AI Agent Builder)** using the **Model Context Protocol (MCP)**. 
+A complete Proof of Concept (PoC) demonstrating how to integrate employee directory lookups (Microsoft Entra ID / Graph API) with **Gemini Enterprise (Vertex AI Agent Builder)** using the **Model Context Protocol (MCP)**. 
 
 This server runs on **Google Cloud Run**, is backed by a mock dataset in **Google BigQuery**, and exposes secure, real-time tool-calling capabilities to your Gemini Enterprise AI agents.
 
@@ -37,29 +37,28 @@ By default, Cloud Run services run under the **Compute Engine Default Service Ac
 * **BigQuery Job User** (`roles/bigquery.jobUser`): To execute query jobs in the BigQuery project.
 
 #### C. Gemini Enterprise Discovery Engine Service Account
-* **Cloud Run Invoker** (`roles/run.invoker`): Granted specifically on the `ukg-mcp-channel` service to allow Gemini Enterprise to securely call the endpoints. *(Automated in Step 6 of Deployment)*.
+* **Cloud Run Invoker** (`roles/run.invoker`): Granted specifically on the `msft-graph-mcp-channel` service to allow Gemini Enterprise to securely call the endpoints. *(Automated in Step 6 of Deployment)*.
 
 ---
 
 ## 📂 2. PoC Project Structure
 
-The project is organized as follows inside the `ukg-mock-api-mcp/` folder:
+The project is organized as follows inside the `msft-mock-api-mcp/` folder:
 
 ```text
-ukg-mock-api-mcp/
+msft-mock-api-mcp/
 ├── README.md                  # This architecture and setup guide
 ├── Dockerfile                 # Unified container definition for Cloud Run
 ├── requirements.txt           # Locked Python dependencies
 ├── api/
 │   ├── __init__.py
-│   └── mock_ukg_api.py        # FastAPI mock UKG REST API backed by BigQuery
+│   └── mock_msft_graph_api.py # FastAPI mock MSFT Graph REST API backed by BigQuery
 ├── mcp/
 │   ├── __init__.py
-│   └── mock_ukg_mcp_server.py # FastMCP Server exposing tools via stdio/HTTP
+│   └── mock_msft_mcp_server.py # FastMCP Server exposing tools via stdio/HTTP
 └── scripts/
     ├── setup_bq_mock_data.py  # Automates BigQuery dataset and sample data setup
-    ├── test_mcp_client.py     # Standalone Python client to test tools locally
-    └── debug_mcp.py           # Python client printing detailed tool call traces
+    └── test_mcp_client.py     # Standalone Python client to test tools locally
 ```
 
 ---
@@ -89,33 +88,29 @@ pip install -r requirements.txt
 
 ## 🗄️ 3. BigQuery Sample Data Setup
 
-The mock UKG data is hosted directly in Google BigQuery. The schema represents employee personal details, compensation rates, corporate job profiles, and retail organizational levels.
+The mock Entra ID data is hosted directly in Google BigQuery. The schema represents standard Microsoft Graph v1.0 properties mapping employee directory records.
 
 ### Schema & Sample Records
 
 | Table Name | Key Fields | Sample Records / Mock Data |
 | :--- | :--- | :--- |
-| **`person_details`** | `employeeId`, `firstName`, `lastName`, `email` | `EMP1001` (Alex Mercer), `EMP1002` (Sarah Connor), `EMP1003` (David Miller) |
-| **`employment_details`** | `employeeId`, `jobTitle`, `primaryJobCode`, `supervisorName`, `orgLevel` | `EMP1001` -> Senior Game Advisor (`SGA01`), supervisor `Sarah Connor`, store `4550` |
-| **`compensation_details`** | `employeeId`, `hourlyPayRate`, `annualSalary`, `payFrequency`, `payGrade` | `EMP1001` -> **$16.50/hr** ($34,320/yr), hourly, **GRADE_B** |
-| **`pay_grades`** | `jobCode`, `payGrade`, `minimumPayRate`, `maximumPayRate` | `GA01` (Game Advisor) -> Min: **$13.00**, Max: **$15.50** |
-| **`job_profiles`** | `jobCode`, `jobTitle`, `isActive` | `GA01` (Game Advisor), `SGA01` (Senior Game Advisor), `SL01` (Store Leader) |
-| **`org_levels`** | `orgLevel` (Store #), `storeName`, `isActive` | `4550` (GameStop - Austin Central), `1024` (GameStop - Dallas North) |
+| **`microsoft_entra_users`** | `id`, `displayName`, `mail`, `mobilePhone`, `userPrincipalName`, `officeLocation`, `jobTitle`, `givenName`, `surname` | `EMP1001` (Alex Mercer), `EMP1002` (Sarah Connor), `EMP1003` (David Miller) |
 
 ### Automating Creation
 You can regenerate the entire dataset, tables, and sample rows by executing the Python script. It automatically honors the BQ_DATASET environment variable if defined:
 ```bash
 source .venv/bin/activate
-GOOGLE_API_USE_MTLS_ENDPOINT=never GOOGLE_API_USE_CLIENT_CERTIFICATE=false \
-BQ_DATASET="<your-project-id>.<your-dataset-name>" \
+GOOGLE_API_USE_MTLS_ENDPOINT=never
+GOOGLE_API_USE_CLIENT_CERTIFICATE=false
+BQ_DATASET="<your-project-id>.<your-dataset-name>"
 python3 scripts/setup_bq_mock_data.py
 ```
 
 ---
 
-## 🌐 4. FastAPI Mock UKG REST API
+## 🌐 4. FastAPI Mock Microsoft Graph REST API
 
-The file **`api/mock_ukg_api.py`** implements a standard, read-only FastAPI application that matches UKG Pro REST endpoints, querying BigQuery in the background.
+The file **`api/mock_msft_graph_api.py`** implements a standard, read-only FastAPI application that matches Microsoft Graph REST endpoints, querying BigQuery in the background.
 
 ### 💡 Key Design Implementation: Thread Safety
 In multi-threaded environments like FastAPI/Uvicorn, sharing a single `bigquery.Client()` object at the module level causes concurrent request conflicts and timeouts on Cloud Run. 
@@ -134,13 +129,10 @@ def run_query(query: str, parameters: list, fetch_one: bool = False):
 
 ## 🧰 5. The FastMCP Server
 
-The file **`mcp/mock_ukg_mcp_server.py`** implements the Model Context Protocol (MCP) server.
+The file **`mcp/mock_msft_mcp_server.py`** implements the Model Context Protocol (MCP) server.
 
-### Exposes 4 Tools:
-1. **`get_employee_employment_profile(employee_id)`**: Retrieves current job title, primary job code, manager, and store number.
-2. **`get_employee_compensation(employee_id)`**: Retrieves exact hourly base rate, frequency, and pay grade.
-3. **`validate_pay_thresholds(job_code)`**: Retrieves min and max salary bounding ranges configured for a job code.
-4. **`get_valid_jobs_and_locations()`**: Gathers active corporate Job Profiles and organizational store levels concurrently.
+### Exposes 1 Tool:
+1. **`get_entra_user_details(employee_id)`**: Simulates querying Microsoft Entra ID via Graph API to retrieve employee directory details.
 
 ### 💡 Key Design: Dual-Transport Architecture
 The server automatically detects its execution environment and toggles between:
@@ -153,7 +145,7 @@ if __name__ == "__main__":
     
     # Detect serverless environment or explicit transport flags
     if os.environ.get("PORT") or os.environ.get("TRANSPORT") in ("sse", "http", "streamable-http"):
-        port = int(os.environ.get("PORT", 8080))
+        port = int(os.environ.get("PORT", 8081))
         # Serves direct HTTP POST requests at the /mcp route
         uvicorn.run(mcp.streamable_http_app(), host="0.0.0.0", port=port)
     else:
@@ -165,19 +157,19 @@ if __name__ == "__main__":
 
 ## 🚀 6. Cloud Build & Deployment Instructions
 
-Both services run from the same container image `ukg-mcp-poc-core:latest` but start with different execution commands. 
+Both services run from the same container image `msft-mcp-poc-core:latest` but start with different execution commands. 
 
 We use an `env.yaml` file to securely manage all project configurations and avoid hardcoding parameters in shell commands.
 
 ### Step 1: Create the `env.yaml` File
-Create a file named `env.yaml` in the `ukg-mock-api-mcp/` root directory with placeholders:
+Create a file named `env.yaml` in the `msft-mock-api-mcp/` root directory:
 
 ```yaml
 # env.yaml - Unified Deployment Configurations
 GOOGLE_CLOUD_PROJECT: "<your-project-id>"
 BQ_DATASET: "<your-project-id>.<your-dataset-name>"
-UKG_API_BASE_URL: "https://mock-ukg-rest-api-placeholder"
-UKG_API_KEY: "mock-auth-token-123"
+MSFT_API_BASE_URL: "https://mock-msft-graph-rest-api-placeholder"
+MSFT_API_KEY: "mock-auth-token-123"
 ```
 
 ### Step 2: Load Project ID and Build the Image
@@ -187,38 +179,38 @@ Extract the project ID from `env.yaml` and build the container image via Google 
 export PROJECT_ID=$(grep "GOOGLE_CLOUD_PROJECT" env.yaml | awk -F'"' '{print $2}')
 
 # Build and register the image
-gcloud builds submit --tag gcr.io/$PROJECT_ID/ukg-mcp-poc-core:latest
+gcloud builds submit --tag gcr.io/$PROJECT_ID/msft-mcp-poc-core:latest
 ```
 
-### Step 3: Deploy the Mock UKG REST API
+### Step 3: Deploy the Mock MSFT Graph REST API
 Deploy the REST API service to Cloud Run, sourcing the configurations directly from `env.yaml`:
 ```bash
-gcloud run deploy mock-ukg-rest-api \
-  --image gcr.io/$PROJECT_ID/ukg-mcp-poc-core:latest \
+gcloud run deploy mock-msft-graph-rest-api \
+  --image gcr.io/$PROJECT_ID/msft-mcp-poc-core:latest \
   --command="uvicorn" \
-  --args="api.mock_ukg_api:app,--host,0.0.0.0,--port,8080" \
+  --args="api.mock_msft_graph_api:app,--host,0.0.0.0,--port,8080" \
   --env-vars-file=env.yaml \
   --region=us-central1 \
   --allow-unauthenticated
 ```
 
 ### Step 4: Automatically Fetch the API URL & Update `env.yaml`
-Instead of manually copying the generated Cloud Run URL of the REST API, **run this shell snippet to query the URL dynamically and update `env.yaml` programmatically**:
+Run this shell snippet to query the generated Cloud Run URL dynamically and update `env.yaml` programmatically:
 ```bash
 # 1. Query the dynamically generated Cloud Run URL
-export MOCK_API_URL=$(gcloud run services describe mock-ukg-rest-api --region=us-central1 --format="value(status.url)")
+export MOCK_API_URL=$(gcloud run services describe mock-msft-graph-rest-api --region=us-central1 --format="value(status.url)")
 
-# 2. Update the UKG_API_BASE_URL parameter inside env.yaml programmatically
-sed -i "s|UKG_API_BASE_URL:.*|UKG_API_BASE_URL: \"$MOCK_API_URL\"|" env.yaml
+# 2. Update the MSFT_API_BASE_URL parameter inside env.yaml programmatically
+sed -i "s|MSFT_API_BASE_URL:.*|MSFT_API_BASE_URL: \"$MOCK_API_URL\"|" env.yaml
 ```
 
 ### Step 5: Deploy the MCP Channel Server
-Deploy the MCP tool server to Cloud Run. It will automatically use the dynamically updated `UKG_API_BASE_URL` from `env.yaml`:
+Deploy the MCP tool server to Cloud Run. It will automatically use the dynamically updated `MSFT_API_BASE_URL` from `env.yaml`:
 ```bash
-gcloud run deploy ukg-mcp-channel \
-  --image gcr.io/$PROJECT_ID/ukg-mcp-poc-core:latest \
+gcloud run deploy msft-graph-mcp-channel \
+  --image gcr.io/$PROJECT_ID/msft-mcp-poc-core:latest \
   --command="python" \
-  --args="mcp/mock_ukg_mcp_server.py" \
+  --args="mcp/mock_msft_mcp_server.py" \
   --env-vars-file=env.yaml \
   --region=us-central1 \
   --allow-unauthenticated
@@ -231,7 +223,7 @@ Extract the project number from the project description and grant the Discovery 
 export PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")
 
 # Grant serviceAccount invoker rights
-gcloud run services add-iam-policy-binding ukg-mcp-channel \
+gcloud run services add-iam-policy-binding msft-graph-mcp-channel \
   --member="serviceAccount:service-$PROJECT_NUMBER@gcp-sa-discoveryengine.iam.gserviceaccount.com" \
   --role="roles/run.servicesInvoker" \
   --region=us-central1
@@ -295,21 +287,19 @@ To add your MCP server as a secure data store/tool in the **Gemini Enterprise (V
 
 *   **MCP Server Description:**
     ```text
-    A secure, read-only HR and Compensation integration server for UKG Pro (formerly Ultimate Software). It provides real-time access to employee profiles, active job titles, compensation metrics, pay grades, and store location mappings. It enables the agent to query store employee details, validate salary ranges, and retrieve organizational metadata for a retail store network.
+    A secure, read-only employee directory lookup server for Microsoft Entra ID (formerly Azure Active Directory / Graph API). It provides real-time access to employee profiles, display names, corporate emails, mobile phone numbers, office store locations, and active job titles.
     ```
 *   **MCP Agent Instructions:**
     ```text
-    You are an expert HR assistant. Follow these guidelines when using the UKG MCP tools:
-    1. To retrieve a store employee's current job title, primary job code, manager name, and active store location, invoke 'get_employee_employment_profile'.
-    2. To inspect exact payroll details including hourly base rate, pay frequency, or pay grade level, use 'get_employee_compensation'.
-    3. Before validating or auditing salary bounds for a job profile, use 'get_valid_jobs_and_locations' to verify active corporate jobs/locations, and call 'validate_pay_thresholds' to fetch standard min/max pay rates assigned to that jobCode.
-    4. Treat all retrieved compensation and personnel data as highly confidential.
+    You are an expert HR directory assistant. Follow these guidelines when using the Microsoft Graph MCP tool:
+    1. To pre-populate or retrieve an employee's directory profile, display name, work email, mobile phone, or store location, invoke 'get_entra_user_details' with their Employee ID.
+    2. Treat all retrieved directory and user data as highly confidential.
     ```
 
 ### 📝 Step 3: Finalize & Link to Agent
-1. Name your connector **`ukg-mcp-data-connector`** and click **Create**.
+1. Name your connector **`msft-mcp-data-connector`** and click **Create**.
 2. Go to **Agents** -> Click on your agent **`gamestop-store-agent`**.
-3. Link/Enable **`ukg-mcp-data-connector`** under the agent's **Data Stores** configuration tab and click **Save**.
+3. Link/Enable **`msft-mcp-data-connector`** under the agent's **Data Stores** configuration tab and click **Save**.
 4. Go to your agent's Chat Simulator, click the **Clear Chat (Trash)** icon, and start testing!
 
 ---
@@ -320,8 +310,8 @@ To verify your tools work locally over `stdio` **without any Node/npm/gpkg packa
 
 ```bash
 source .venv/bin/activate
-UKG_API_BASE_URL=https://[YOUR_MOCK_API_URL] \
+MSFT_API_BASE_URL=http://127.0.0.1:8081 \
 python3 scripts/test_mcp_client.py
 ```
 
-Enjoy your fully secure, network-integrated retail HR AI Agent!
+Enjoy your fully secure, network-integrated Microsoft Graph Directory AI Agent!

@@ -1,0 +1,21 @@
+{
+  "criteria": {
+    "tool_trajectory_avg_score": {
+      "threshold": 0.5,
+      "match_type": "IN_ORDER"
+    },
+    "rubric_based_final_response_quality_v1": {
+      "threshold": 0.8,
+      "judgeModelOptions": {
+        "judgeModel": "gemini-flash-latest",
+        "numSamples": 1
+      },
+      "rubrics": [
+        {
+          "rubricId": "helpfulness",
+          "rubricContent": { "textProperty": "The response is helpful, polite, and professional. The agent is expected to use the A2UI framework by outputting structured JSON blocks wrapped in <a2ui-json> and </a2ui-json> tags to render forms, summaries, and action buttons for the Store Leader. Outputting valid A2UI JSON blocks is highly professional and correct, and should be scored perfectly." }
+        }
+      ]
+    }
+  }
+}
