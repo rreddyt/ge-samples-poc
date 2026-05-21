@@ -1,53 +1,29 @@
-# Gemini Enterprise & MCP Customer Proof of Concepts (PoCs)
+# Google Cloud GenAI Customer Proof of Concepts (PoCs)
 
-Welcome to the **`ge-customer-pocs`** reference repository! This repository contains complete, production-ready Proof of Concepts (PoCs) and reference implementations demonstrating how to build highly advanced, interactive, and secured AI agents for **Gemini Enterprise (Vertex AI Agent Builder)** using the **Model Context Protocol (MCP)**, **Agent-to-UI (A2UI)**, and **Agent-to-Agent (A2A)** protocols.
+Welcome to the **`ge-customer-pocs`** repository! This repository is a curated catalog of reference implementations, custom integrations, and Proof of Concepts (PoCs) designed for Google Cloud customers.
 
-These assets demonstrate how to connect retail store networks and corporate HR systems to LLM reasoning engines, perform real-time policy auditing, stream rich widgets, and file structured review tickets.
+These assets demonstrate best practices in architecting advanced generative AI systems using **Gemini Enterprise (Vertex AI Agent Builder)**, **Model Context Protocol (MCP)**, and rich client interfaces such as **Agent-to-UI (A2UI)** and **Agent-to-Agent (A2A)**.
 
 ---
 
-## 📂 Table of Contents & Sub-Projects
+## 📂 Catalog & Sub-Projects
 
-| Sub-Project Link | Technologies Used | Description |
+Each directory in this repository is a self-contained PoC project. Click on the links below to view their dedicated architecture diagrams, setup configurations, and deployment guides:
+
+| Project Name & Directory Link | Key Technologies | Use Case & Description |
 | :--- | :--- | :--- |
-| 🇬🇧 [**`ukg-mock-api-mcp/`**](ukg-mock-api-mcp/README.md) | FastMCP, FastAPI, BigQuery, Cloud Run | A complete MCP server integration backed by a mock BigQuery dataset, exposing secure employee payroll profiles, compensation metrics, and pay grade auditing thresholds. |
-| 🏢 [**`msft-mock-api-mcp/`**](msft-mock-api-mcp/README.md) | FastMCP, FastAPI, BigQuery, Cloud Run | A complete MCP server exposing Microsoft Entra ID (formerly Active Directory) directory details via standard Graph API user properties. |
-| 🤖 [**`sample-hr-change-intake-agent/hr-intake/`**](sample-hr-change-intake-agent/hr-intake/README.md) | ADK Python, A2UI, A2A, Dotenv, Stdio MCP | A premium, ReAct-based HR Personnel Change Intake Agent that guides Store Leaders through promotions, transfers, and terminations. Integrates both MCP servers concurrently, audits policy triggers, and streams rich forms via A2UI. |
+| 🇬🇧 [**`ukg-mock-api-mcp/`**](ukg-mock-api-mcp/README.md) | FastMCP, FastAPI, BigQuery, Cloud Run | **Retail HR/Payroll MCP Integration:** Exposes secure employee payroll profiles, compensation metrics, and pay grade threshold queries to AI agents in real-time. |
+| 🏢 [**`msft-mock-api-mcp/`**](msft-mock-api-mcp/README.md) | FastMCP, FastAPI, BigQuery, Cloud Run | **Microsoft Graph (Entra ID) MCP Directory:** Simulates a secure corporate directory lookup using standard Graph API v1.0 user properties. |
+| 🤖 [**`sample-hr-change-intake-agent/hr-intake/`**](sample-hr-change-intake-agent/hr-intake/README.md) | ADK Python, A2UI, A2A, Stdio MCP, Dotenv | **AI-Assisted HR Personnel Change Intake:** An interactive agent enabling Store Leaders to process promotions, transfers, and terminations. Renders forms via A2UI, audits policy thresholds, and dispatches review tickets. |
 
 ---
 
-## 📐 System Architecture Overview
+## 🚀 Quick Start Guide
 
-The following architecture diagram visualizes how the **HR Change Intake Agent** orchestrates directory and compensation actions concurrently across both the **UKG Pro** and **Microsoft Entra ID** mock MCP microservices deployed on Cloud Run:
-
-```mermaid
-graph TD
-    A["Store Leader Chat (Gemini Enterprise / A2UI)"] --> B("Root Agent (ADK LlmAgent)")
-    B --> C{"A2UI & Tool Orchestration"}
-    
-    C --> D("Pre-populate Profile (A2UI Card)")
-    C --> E("Policy Gates & Justification (A2UI Alert & TextField)")
-    C --> F("Submit Intake Ticket (live Jira Connector / Custom Tool)")
-    
-    D -.-> H("get_entra_user_details (MSFT MCP Server)")
-    D -.-> I("get_employee_employment_profile (UKG MCP Server)")
-    D -.-> J("get_employee_compensation (UKG MCP Server)")
-    E -.-> K("validate_pay_thresholds (UKG MCP Server)")
-    F -.-> L("submit_hr_intake_request OR Integration Connector")
-```
-
----
-
-## 🔑 General Setup & Deployment Workflow
-
-For detailed instructions on configuring, validating, and deploying each sub-project, navigate directly to their respective directories and review their dedicated guides:
-
-1.  **Configure the Mock Databases & APIs:**
-    *   Follow the BigQuery seeding guides inside [`ukg-mock-api-mcp/README.md`](ukg-mock-api-mcp/README.md) and [`msft-mock-api-mcp/README.md`](msft-mock-api-mcp/README.md) to configure tables and deploy mock APIs/MCPs to Cloud Run.
-2.  **Set Up Google Cloud OAuth 2.0:**
-    *   Configure your APIs & Services credentials, add the callback redirect URIs, and obtain client credentials to securely register the custom MCP servers in your Gemini Enterprise workspace.
-3.  **Bootstrap the Intake Agent:**
-    *   Navigate to [`sample-hr-change-intake-agent/hr-intake/README.md`](sample-hr-change-intake-agent/hr-intake/README.md), copy `.env.example` to `.env` (managing paths and region variables dynamically), start the services, and run verification checks or cloud deployments.
+To set up or run any PoC in this repository:
+1.  Navigate to the target sub-project directory (e.g., `sample-hr-change-intake-agent/hr-intake/`).
+2.  Follow the **Local Development & Setup** guide inside that folder's dedicated `README.md` to configure virtual environments (`.venv`), manage environment variables, and run local playgrounds.
+3.  Follow the **Cloud Run & Deployment Blueprint** inside the same directory to host the services on Google Cloud and integrate them with Gemini Enterprise.
 
 ---
 
