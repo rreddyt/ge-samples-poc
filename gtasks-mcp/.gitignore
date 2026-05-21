@@ -1,0 +1,17 @@
+# Environments
+.env
+.venv/
+env/
+venv/
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Visual Studio Code
+.vscode/
+
+# Deployment configurations
+env.yaml

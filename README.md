@@ -15,6 +15,7 @@ Each directory in this repository is a self-contained PoC project. Click on the 
 | 🇬🇧 [**`ukg-mock-api-mcp/`**](ukg-mock-api-mcp/README.md) | FastMCP, FastAPI, BigQuery, Cloud Run | **Retail HR/Payroll MCP Integration:** Exposes secure employee payroll profiles, compensation metrics, and pay grade threshold queries to AI agents in real-time. |
 | 🏢 [**`msft-mock-api-mcp/`**](msft-mock-api-mcp/README.md) | FastMCP, FastAPI, BigQuery, Cloud Run | **Microsoft Graph (Entra ID) MCP Directory:** Simulates a secure corporate directory lookup using standard Graph API v1.0 user properties. |
 | 🤖 [**`sample-hr-change-intake-agent/hr-intake/`**](sample-hr-change-intake-agent/hr-intake/README.md) | ADK Python, A2UI, A2A, Stdio MCP, Dotenv | **AI-Assisted HR Personnel Change Intake:** An interactive agent enabling Store Leaders to process promotions, transfers, and terminations. Renders forms via A2UI, audits policy thresholds, and dispatches review tickets. |
+| 🗓️ [**`gtasks-mcp/`**](gtasks-mcp/README.md) | FastMCP, googleapiclient, Cloud Run | **Google Tasks API MCP Integration:** Secure, read-write integration enabling Gemini Enterprise AI agents to manage task lists and task items utilizing dynamic end-user OAuth tokens. |
 
 ---
 
