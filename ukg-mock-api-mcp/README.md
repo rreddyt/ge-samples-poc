@@ -262,8 +262,7 @@ To securely connect Gemini Enterprise (Vertex AI Agent Builder) to your Cloud Ru
 2. Click **+ Create Credentials** at the top of the screen and select **OAuth client ID**.
 3. Set the **Application type** to **`Web application`**.
 4. Enter a name for the client: e.g., `Gemini Enterprise MCP Client`.
-5. In the **Authorized redirect URIs** section, click **+ ADD URI** and enter the official Gemini Enterprise callback redirect endpoint:
-   `https://auth.vertexaidevs.com/oauth2/callback`
+5. In the **Authorized redirect URIs** section, click **+ ADD URI** and enter the official Gemini Enterprise callback redirect endpoint: `https://vertexaisearch.cloud.google.com/oauth-redirect`
 6. Click **Create**.
 7. A dialog will appear displaying your **Client ID** and **Client Secret**. Copy these values securely—you will use them in Step 1 to link the connector!
 
