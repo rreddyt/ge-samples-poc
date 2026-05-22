@@ -37,9 +37,9 @@ def setup_bigquery_mock():
                 bigquery.SchemaField("email", "STRING", mode="NULLABLE"),
             ],
             "data": [
-                {"employeeId": "EMP1001", "firstName": "Alex", "lastName": "Mercer", "email": "amercer@gamestop.com"},
-                {"employeeId": "EMP1002", "firstName": "Sarah", "lastName": "Connor", "email": "sconnor@gamestop.com"},
-                {"employeeId": "EMP1003", "firstName": "David", "lastName": "Miller", "email": "dmiller@gamestop.com"}
+                {"employeeId": "EMP1001", "firstName": "Alex", "lastName": "Mercer", "email": "amercer@retail.com"},
+                {"employeeId": "EMP1002", "firstName": "Sarah", "lastName": "Connor", "email": "sconnor@retail.com"},
+                {"employeeId": "EMP1003", "firstName": "David", "lastName": "Miller", "email": "dmiller@retail.com"}
             ]
         },
         "employment_details": {
@@ -51,9 +51,9 @@ def setup_bigquery_mock():
                 bigquery.SchemaField("orgLevel", "STRING", mode="REQUIRED"), # Store Number
             ],
             "data": [
-                {"employeeId": "EMP1001", "jobTitle": "Senior Game Advisor", "primaryJobCode": "SGA01", "supervisorName": "Sarah Connor", "orgLevel": "4550"},
-                {"employeeId": "EMP1002", "jobTitle": "Store Leader", "primaryJobCode": "SL01", "supervisorName": "District Manager", "orgLevel": "4550"},
-                {"employeeId": "EMP1003", "jobTitle": "Game Advisor", "primaryJobCode": "GA01", "supervisorName": "Sarah Connor", "orgLevel": "1024"}
+                {"employeeId": "EMP1001", "jobTitle": "Senior Sales Associate", "primaryJobCode": "SGA01", "supervisorName": "Sarah Connor", "orgLevel": "4550"},
+                {"employeeId": "EMP1002", "jobTitle": "Store Manager", "primaryJobCode": "SL01", "supervisorName": "District Manager", "orgLevel": "4550"},
+                {"employeeId": "EMP1003", "jobTitle": "Sales Associate", "primaryJobCode": "GA01", "supervisorName": "Sarah Connor", "orgLevel": "1024"}
             ]
         },
         "compensation_details": {
@@ -91,10 +91,10 @@ def setup_bigquery_mock():
                 bigquery.SchemaField("isActive", "BOOLEAN", mode="REQUIRED"),
             ],
             "data": [
-                {"jobCode": "GA01", "jobTitle": "Game Advisor", "isActive": True},
-                {"jobCode": "SGA01", "jobTitle": "Senior Game Advisor", "isActive": True},
-                {"jobCode": "ASL01", "jobTitle": "Assistant Store Leader", "isActive": True},
-                {"jobCode": "SL01", "jobTitle": "Store Leader", "isActive": True}
+                {"jobCode": "GA01", "jobTitle": "Sales Associate", "isActive": True},
+                {"jobCode": "SGA01", "jobTitle": "Senior Sales Associate", "isActive": True},
+                {"jobCode": "ASL01", "jobTitle": "Assistant Store Manager", "isActive": True},
+                {"jobCode": "SL01", "jobTitle": "Store Manager", "isActive": True}
             ]
         },
         "org_levels": {
@@ -104,9 +104,9 @@ def setup_bigquery_mock():
                 bigquery.SchemaField("isActive", "BOOLEAN", mode="REQUIRED"),
             ],
             "data": [
-                {"orgLevel": "4550", "storeName": "GameStop - Austin Central", "isActive": True},
-                {"orgLevel": "1024", "storeName": "GameStop - Dallas North", "isActive": True},
-                {"orgLevel": "2048", "storeName": "GameStop - Houston West", "isActive": True}
+                {"orgLevel": "4550", "storeName": "Retail Store - Austin Central", "isActive": True},
+                {"orgLevel": "1024", "storeName": "Retail Store - Dallas North", "isActive": True},
+                {"orgLevel": "2048", "storeName": "Retail Store - Houston West", "isActive": True}
             ]
         }
     }

@@ -2,7 +2,7 @@ import os
 import httpx
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("GameStop-Microsoft-Agent-MCP", host="0.0.0.0")
+mcp = FastMCP("Retail-Microsoft-Agent-MCP", host="0.0.0.0")
 
 API_BASE_URL = os.environ.get("MSFT_API_BASE_URL", "http://localhost:8081")
 API_KEY = os.environ.get("MSFT_API_KEY", "mock-auth-token-123")

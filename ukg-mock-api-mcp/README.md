@@ -96,11 +96,11 @@ The mock UKG data is hosted directly in Google BigQuery. The schema represents e
 | Table Name | Key Fields | Sample Records / Mock Data |
 | :--- | :--- | :--- |
 | **`person_details`** | `employeeId`, `firstName`, `lastName`, `email` | `EMP1001` (Alex Mercer), `EMP1002` (Sarah Connor), `EMP1003` (David Miller) |
-| **`employment_details`** | `employeeId`, `jobTitle`, `primaryJobCode`, `supervisorName`, `orgLevel` | `EMP1001` -> Senior Game Advisor (`SGA01`), supervisor `Sarah Connor`, store `4550` |
+| **`employment_details`** | `employeeId`, `jobTitle`, `primaryJobCode`, `supervisorName`, `orgLevel` | `EMP1001` -> Senior Sales Associate (`SGA01`), supervisor `Sarah Connor`, store `4550` |
 | **`compensation_details`** | `employeeId`, `hourlyPayRate`, `annualSalary`, `payFrequency`, `payGrade` | `EMP1001` -> **$16.50/hr** ($34,320/yr), hourly, **GRADE_B** |
-| **`pay_grades`** | `jobCode`, `payGrade`, `minimumPayRate`, `maximumPayRate` | `GA01` (Game Advisor) -> Min: **$13.00**, Max: **$15.50** |
-| **`job_profiles`** | `jobCode`, `jobTitle`, `isActive` | `GA01` (Game Advisor), `SGA01` (Senior Game Advisor), `SL01` (Store Leader) |
-| **`org_levels`** | `orgLevel` (Store #), `storeName`, `isActive` | `4550` (GameStop - Austin Central), `1024` (GameStop - Dallas North) |
+| **`pay_grades`** | `jobCode`, `payGrade`, `minimumPayRate`, `maximumPayRate` | `GA01` (Sales Associate) -> Min: **$13.00**, Max: **$15.50** |
+| **`job_profiles`** | `jobCode`, `jobTitle`, `isActive` | `GA01` (Sales Associate), `SGA01` (Senior Sales Associate), `SL01` (Store Manager) |
+| **`org_levels`** | `orgLevel` (Store #), `storeName`, `isActive` | `4550` (Retail Store - Austin Central), `1024` (Retail Store - Dallas North) |
 
 ### Automating Creation
 You can regenerate the entire dataset, tables, and sample rows by executing the Python script. It automatically honors the BQ_DATASET environment variable if defined:
@@ -308,7 +308,7 @@ To add your MCP server as a secure data store/tool in the **Gemini Enterprise (V
 
 ### 📝 Step 3: Finalize & Link to Agent
 1. Name your connector **`ukg-mcp-data-connector`** and click **Create**.
-2. Go to **Agents** -> Click on your agent **`gamestop-store-agent`**.
+2. Go to **Agents** -> Click on your agent **`retail-store-agent`**.
 3. Link/Enable **`ukg-mcp-data-connector`** under the agent's **Data Stores** configuration tab and click **Save**.
 4. Go to your agent's Chat Simulator, click the **Clear Chat (Trash)** icon, and start testing!
 

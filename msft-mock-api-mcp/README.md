@@ -298,7 +298,7 @@ To add your MCP server as a secure data store/tool in the **Gemini Enterprise (V
 
 ### 📝 Step 3: Finalize & Link to Agent
 1. Name your connector **`msft-mcp-data-connector`** and click **Create**.
-2. Go to **Agents** -> Click on your agent **`gamestop-store-agent`**.
+2. Go to **Agents** -> Click on your agent **`retail-store-agent`**.
 3. Link/Enable **`msft-mcp-data-connector`** under the agent's **Data Stores** configuration tab and click **Save**.
 4. Go to your agent's Chat Simulator, click the **Clear Chat (Trash)** icon, and start testing!
 

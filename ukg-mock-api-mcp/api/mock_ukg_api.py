@@ -8,7 +8,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-DATASET = os.environ.get("BQ_DATASET", "vr-payg-nonprod.ukg_mock_data")
+DATASET = os.environ.get("BQ_DATASET", "<your-project-id>.<your-dataset-name>")
 
 def run_query(query: str, parameters: list, fetch_one: bool = False):
     bq_client = bigquery.Client()

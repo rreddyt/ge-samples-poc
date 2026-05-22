@@ -30,7 +30,7 @@ cp .env.example .env
 ### B. Edit the `.env` File
 Open `.env` and configure the following variables to match your local environment and paths:
 
-- **`GOOGLE_CLOUD_PROJECT`**: Set to your Google Cloud Project ID (e.g., `vr-payg-nonprod`).
+- **`GOOGLE_CLOUD_PROJECT`**: Set to your Google Cloud Project ID (e.g., `<your-project-id>`).
 - **`MSFT_MCP_SERVER_PYTHON_PATH`**: The absolute path to the virtual environment python binary inside your `msft-mock-api-mcp` project folder.
 - **`MSFT_MCP_SERVER_SCRIPT_PATH`**: The absolute path to the `mock_msft_mcp_server.py` script inside your `msft-mock-api-mcp/mcp` folder.
 - **`UKG_MCP_SERVER_PYTHON_PATH`**: The absolute path to the virtual environment python binary inside your `ukg-mock-api-mcp` project folder.

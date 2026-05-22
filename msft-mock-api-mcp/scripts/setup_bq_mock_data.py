@@ -44,33 +44,33 @@ def setup_bigquery_mock():
         {
             "id": "EMP1001",
             "displayName": "Alex Mercer",
-            "mail": "alex.mercer@gamestop.corp",
+            "mail": "alex.mercer@retail.corp",
             "mobilePhone": "+1-555-019-1001",
-            "userPrincipalName": "alex.mercer@gamestop.corp",
+            "userPrincipalName": "alex.mercer@retail.corp",
             "officeLocation": "4550",
-            "jobTitle": "Senior Game Advisor",
+            "jobTitle": "Senior Sales Associate",
             "givenName": "Alex",
             "surname": "Mercer"
         },
         {
             "id": "EMP1002",
             "displayName": "Sarah Connor",
-            "mail": "sarah.connor@gamestop.corp",
+            "mail": "sarah.connor@retail.corp",
             "mobilePhone": "+1-555-019-1002",
-            "userPrincipalName": "sarah.connor@gamestop.corp",
+            "userPrincipalName": "sarah.connor@retail.corp",
             "officeLocation": "4550",
-            "jobTitle": "Store Leader",
+            "jobTitle": "Store Manager",
             "givenName": "Sarah",
             "surname": "Connor"
         },
         {
             "id": "EMP1003",
             "displayName": "David Miller",
-            "mail": "david.miller@gamestop.corp",
+            "mail": "david.miller@retail.corp",
             "mobilePhone": "+1-555-019-1003",
-            "userPrincipalName": "david.miller@gamestop.corp",
+            "userPrincipalName": "david.miller@retail.corp",
             "officeLocation": "1024",
-            "jobTitle": "Game Advisor",
+            "jobTitle": "Sales Associate",
             "givenName": "David",
             "surname": "Miller"
         }

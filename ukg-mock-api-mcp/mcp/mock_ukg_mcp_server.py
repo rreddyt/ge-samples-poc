@@ -3,7 +3,7 @@ import httpx
 import asyncio
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("GameStop-UKG-Agent-MCP", host="0.0.0.0")
+mcp = FastMCP("Retail-UKG-Agent-MCP", host="0.0.0.0")
 
 API_BASE_URL = os.environ.get("UKG_API_BASE_URL", "http://localhost:8080")
 API_KEY = os.environ.get("UKG_API_KEY", "mock-auth-token-123")

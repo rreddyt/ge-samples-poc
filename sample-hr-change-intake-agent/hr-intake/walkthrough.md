@@ -107,9 +107,9 @@ ukg_mcp_toolset = McpToolset(
             command=ukg_python_path,
             args=[ukg_script_path],
             env={
-                "UKG_API_BASE_URL": os.environ.get("UKG_API_BASE_URL", "https://mock-ukg-rest-api-641376439270.us-central1.run.app"),
+                "UKG_API_BASE_URL": os.environ.get("UKG_API_BASE_URL", "http://127.0.0.1:8080"),
                 "UKG_API_KEY": os.environ.get("UKG_API_KEY", "mock-auth-token-123"),
-                "GOOGLE_CLOUD_PROJECT": os.environ.get("GOOGLE_CLOUD_PROJECT", "vr-payg-nonprod"),
+                "GOOGLE_CLOUD_PROJECT": os.environ.get("GOOGLE_CLOUD_PROJECT", "<your-project-id>"),
                 "GOOGLE_API_USE_MTLS_ENDPOINT": "never",
                 "GOOGLE_API_USE_CLIENT_CERTIFICATE": "false",
             },
