@@ -9,7 +9,7 @@ Built with **Google Agent Development Kit (ADK)** and fully enabled for both **A
 ## 🚀 Architecture & Capabilities
 
 - **Interactive intake forms (A2UI):** Streams rich, structured UI elements (Cards, Columns, TextFields, ChoicePickers, Buttons) utilizing A2UI v0.9 specifications for a premium, interactive manager experience.
-- **Unified directory pre-population:** Queries Microsoft Entra ID and Ultimate Kronos Group (UKG) REST API MCP servers to instantly pre-populate current job profiles.
+- **Unified directory pre-population:** Queries a mock Microsoft Entra ID and UKG Pro REST API MCP servers to instantly pre-populate current job profiles.
 - **Real-time policy gatekeeping:** Performs immediate calculations (e.g., pay increase percentages exceeding 20%, backdated effective dates, and Job Code base threshold validations) and prompts managers for required justifications before submission.
 - **Enterprise-ready Ticketing:** Supports dynamic toggling between offline mock simulations and **Google Cloud Application Integration Connectors** for Jira Service Management and Jira Cloud.
 - **A2A Protocol Compliance:** Scaffolded using the `adk_a2a` template, exposing standardized endpoints for peer agents to invoke this reasoning engine programmatically.
