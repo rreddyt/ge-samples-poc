@@ -28,7 +28,7 @@ Before deploying this agent to **Agent Engine (Agent Runtime)**, ensure the foll
 
 ### B. GCP Integration Connectors
 1. Setup and provision the **Jira Service Management Connector** in GCP Integration Connectors:
-   - For official instructions on provisioning and configuring the connector resource, see the [Google Cloud Integration Connectors Jira Service Management Guide](https://cloud.google.com/integration-connectors/docs/connectors/jira-service-management/configure).
+   - For official instructions on provisioning and configuring the connector resource, see the [Jira Service Management Connector documentation](https://docs.cloud.google.com/integration-connectors/docs/connectors/jiraservicemanagement/configure#configure-the-connector).
 2. Note the connector's resource name (e.g., `sample-jsm-conn`).
 
 ---
