@@ -21,11 +21,14 @@ Built with **Google Agent Development Kit (ADK)**, and fully compatible with bot
 Before deploying this agent to **Agent Engine (Agent Runtime)**, ensure the following dependencies are set up:
 
 ### A. Mock MCP Servers
-1. Deploy the mock Microsoft Graph and UKG MCP servers (e.g., to **Cloud Run**).
+1. Deploy the mock Microsoft Graph and UKG MCP servers (e.g., to **Cloud Run**):
+   - For instructions on configuring and deploying the Entra ID mock directory, see the [Microsoft Graph Mock MCP README](../../msft-mock-api-mcp/README.md).
+   - For instructions on configuring and deploying the employee compensation details, see the [UKG Mock MCP README](../../ukg-mock-api-mcp/README.md).
 2. Note their **Streamable HTTP endpoints** (usually ending in `/mcp`, such as `https://msft-graph-mcp-abc123-uc.a.run.app/mcp`).
 
 ### B. GCP Integration Connectors
-1. Setup and provision the **Jira Service Management Connector** in GCP Integration Connectors.
+1. Setup and provision the **Jira Service Management Connector** in GCP Integration Connectors:
+   - For official instructions on provisioning and configuring the connector resource, see the [Google Cloud Integration Connectors Jira Service Management Guide](https://cloud.google.com/integration-connectors/docs/connectors/jira-service-management/configure).
 2. Note the connector's resource name (e.g., `sample-jsm-conn`).
 
 ---
