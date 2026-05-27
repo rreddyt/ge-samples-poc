@@ -1,184 +1,174 @@
 # HR Change Intake & Policy Auditing Agent
 
-An AI-assisted, premium agentic intake engine designed to orchestrate HR personnel changes (promotions, transfers, terminations, pay adjustments) for Store Leaders, enforce policy guidelines in real-time, and file structured review tickets.
+An AI-assisted, premium agentic intake engine designed to orchestrate HR personnel changes (promotions, transfers, terminations, pay adjustments) for Store Leaders, enforce company policy guidelines in real-time, and file structured review tickets.
 
-Built with **Google Agent Development Kit (ADK)** and fully enabled for both **Agent-to-UI (A2UI)** and **Agent-to-Agent (A2A)** workflows.
+Built with **Google Agent Development Kit (ADK)**, and fully compatible with both the **Agent Engine (Agent Runtime)** platform and **Gemini Enterprise** conversational Apps.
 
 ---
 
-## 🚀 Architecture & Capabilities
+## 🚀 1. Architecture & Capabilities
 
 - **Interactive intake forms (A2UI):** Streams rich, structured UI elements (Cards, Columns, TextFields, ChoicePickers, Buttons) utilizing A2UI v0.9 specifications for a premium, interactive manager experience.
 - **Unified directory pre-population:** Queries a mock Microsoft Entra ID and UKG Pro REST API MCP servers to instantly pre-populate current job profiles.
 - **Real-time policy gatekeeping:** Performs immediate calculations (e.g., pay increase percentages exceeding 20%, backdated effective dates, and Job Code base threshold validations) and prompts managers for required justifications before submission.
 - **Enterprise-ready Ticketing:** Supports dynamic toggling between offline mock simulations and **Google Cloud Application Integration Connectors** for Jira Service Management and Jira Cloud.
-- **A2A Protocol Compliance:** Scaffolded using the `adk_a2a` template, exposing standardized endpoints for peer agents to invoke this reasoning engine programmatically.
+- **ADK Framework Compliance:** Standardized endpoints matching standard Vertex AI and Gemini Enterprise orchestrator requirements perfectly.
 
 ---
 
-## ⚙️ 1. Configuration Setup (`.env`)
+## 📋 2. Deployment Prerequisites
 
-The project utilizes a `.env` file to manage all local environment, python execution paths, and API configurations.
+Before deploying this agent to **Agent Engine (Agent Runtime)**, ensure the following dependencies are set up:
+
+### A. Mock MCP Servers
+1. Deploy the mock Microsoft Graph and UKG MCP servers (e.g., to **Cloud Run**).
+2. Note their **Streamable HTTP endpoints** (usually ending in `/mcp`, such as `https://msft-graph-mcp-abc123-uc.a.run.app/mcp`).
+
+### B. GCP Integration Connectors
+1. Setup and provision the **Jira Service Management Connector** in GCP Integration Connectors.
+2. Note the connector's resource name (e.g., `sample-jsm-conn`).
+
+---
+
+## ⚙️ 3. Configuration Setup (`.env`)
+
+The project uses environment variables to manage local fallback stdio paths, live remote Cloud Run MCP URLs, and project settings.
 
 ### A. Copy the Environment Template
 Create your local `.env` file by copying the provided example template:
-
 ```bash
 cp .env.example .env
 ```
 
 ### B. Edit the `.env` File
-Open `.env` and configure the following variables to match your local environment and paths:
+Open `.env` and configure the following variables:
 
-- **`GOOGLE_CLOUD_PROJECT`**: Set to your Google Cloud Project ID (e.g., `<your-project-id>`).
-- **`MSFT_MCP_SERVER_PYTHON_PATH`**: The absolute path to the virtual environment python binary inside your `msft-mock-api-mcp` project folder.
-- **`MSFT_MCP_SERVER_SCRIPT_PATH`**: The absolute path to the `mock_msft_mcp_server.py` script inside your `msft-mock-api-mcp/mcp` folder.
-- **`UKG_MCP_SERVER_PYTHON_PATH`**: The absolute path to the virtual environment python binary inside your `ukg-mock-api-mcp` project folder.
-- **`UKG_MCP_SERVER_SCRIPT_PATH`**: The absolute path to the `mock_ukg_mcp_server.py` script inside your `ukg-mock-api-mcp/mcp` folder.
+```ini
+# ☁️ Google Cloud Platform Core Settings
+GOOGLE_CLOUD_PROJECT=<your-gcp-project-id>
+GOOGLE_CLOUD_REGION=us-central1
+GOOGLE_CLOUD_LOCATION=us-central1
 
-*All other mock base URLs, authentication keys, and local endpoints are pre-configured and ready to run!*
+# 🎫 Jira Connection Configuration (Mock/Local by default, set to true for connector)
+USE_JIRA_INTEGRATION_CONNECTOR=true
+JIRA_CONNECTION_NAME=<your-jsm-connector-name>
+
+# 🏢 Microsoft Graph (Entra ID) Remote MCP Server URL (Streamable HTTP /mcp)
+MSFT_MCP_SERVER_URL=https://<your-msft-graph-mcp-run-url>/mcp
+
+# 🇬🇧 UKG (Ultimate Kronos Group) Remote MCP Server URL (Streamable HTTP /mcp)
+UKG_MCP_SERVER_URL=https://<your-ukg-mcp-run-url>/mcp
+
+# =====================================================================
+# Local Fallback configurations (Only used if URL variables above are empty)
+# =====================================================================
+MSFT_MCP_SERVER_PYTHON_PATH=../../msft-mock-api-mcp/.venv/bin/python
+MSFT_MCP_SERVER_SCRIPT_PATH=../../msft-mock-api-mcp/mcp/mock_msft_mcp_server.py
+UKG_MCP_SERVER_PYTHON_PATH=../../ukg-mock-api-mcp/.venv/bin/python
+UKG_MCP_SERVER_SCRIPT_PATH=../../ukg-mock-api-mcp/mcp/mock_ukg_mcp_server.py
+```
 
 ---
 
-## 💻 2. Local Development & Testing
+## 💻 4. Local Development & Testing
 
-To test the agent locally, you must run the mock Microsoft Graph REST API service in the background and launch the ADK local playground.
+Test your agent locally inside the **Agent Engine Web Playground** to visually verify the streamed A2UI component rendering:
 
 ### A. Install Project Dependencies
-On secure corporate environments, install all dependencies (including core and dev extras) using the authenticated registry bypass command:
-
+Install all dependencies (including core and dev groups) using `uv`:
 ```bash
 # 1. Create the Python virtual environment
-uv venv
+uv venv --python 3.12
 
 # 2. Activate the virtual environment
 source .venv/bin/activate
 
-# 3. Generate access token
-export ARTIFACT_REGISTRY_TOKEN=$(gcloud auth application-default print-access-token)
-
-# 4. Run authenticated uv sync
-UV_NO_CONFIG=1 \
-UV_INDEX_URL=https://pypi.org/simple \
-UV_EXTRA_INDEX_URL="https://oauth2accesstoken:${ARTIFACT_REGISTRY_TOKEN}@us-python.pkg.dev/artifact-foundry-prod/ah-3p-staging-python/simple/" \
+# 3. Run authenticated uv sync
 uv sync --all-groups --extra lint --extra eval --prerelease=allow
 ```
 
-### B. Start the Mock Microsoft Graph REST Service
-In a separate terminal, launch the mock Microsoft Graph API uvicorn server backed by BigQuery (disabling mTLS for corporate PTY compatibility):
-
+### B. Execute the Validation Checks
+Ensure styling, type safety, and unit/integration tests are 100% correct:
 ```bash
-cd ../msft-mock-api-mcp
-
-# Launch the mock uvicorn server on port 8081
-GOOGLE_API_USE_MTLS_ENDPOINT=never \
-GOOGLE_API_USE_CLIENT_CERTIFICATE=false \
-.venv/bin/uvicorn api.mock_msft_graph_api:app --host 127.0.0.1 --port 8081
-```
-
-### C. Run Verification and Formatting Checks
-Ensure code styling and type safety are 100% correct:
-
-```bash
-# Auto-format code style
-uv run ruff format .
-
-# Auto-fix imports and linting issues
-uv run ruff check . --fix
-
-# Audits type safety parameters
+# Run type safety checks
 uv run ty check .
+
+# Run complete unit and integration test suite
+uv run pytest tests/integration/test_agent.py
 ```
 
-### D. Execute the Evaluation Suite
-Run the multi-turn promotion evalset to verify perfect 100% scoring matches:
+### C. Start Local Interactive Web Playground
+Launch the ADK web playground. Because we've populated `.env` with your live remote Cloud Run MCP URLs, it will connect to them automatically!
+```bash
+GOOGLE_API_USE_MTLS_ENDPOINT=never GOOGLE_API_USE_CLIENT_CERTIFICATE=false agents-cli playground
+```
+*Navigate to `http://127.0.0.1:8080` in your browser and click **New Session** to begin testing.*
+
+---
+
+## 🚀 5. Deploying to Google Cloud Agent Engine
+
+When you are ready to deploy your agent to **Agent Engine (Agent Runtime)** as a standard, secure Reasoning Engine:
+
+### A. One-time IAM Permission Setup
+Your Reasoning Engine runs under the Google-managed Vertex AI Service Agent (`service-PROJECT_NUMBER@gcp-sa-aiplatform-re.iam.gserviceaccount.com`). To allow the agent to access your Integration Connectors (like `sample-jsm-conn`), you must grant it Connectors Admin rights:
 
 ```bash
-export ARTIFACT_REGISTRY_TOKEN=$(gcloud auth application-default print-access-token)
-
-UV_NO_CONFIG=1 \
-UV_INDEX_URL=https://pypi.org/simple \
-UV_EXTRA_INDEX_URL="https://oauth2accesstoken:${ARTIFACT_REGISTRY_TOKEN}@us-python.pkg.dev/artifact-foundry-prod/ah-3p-staging-python/simple/" \
-uv run adk eval ./app tests/eval/evalsets/hr_intake.evalset.json --config_file_path tests/eval/eval_config.json
+# Replace <your-gcp-project-id> and <your-gcp-project-number> with your values
+gcloud projects add-iam-policy-binding <your-gcp-project-id> \
+  --member="serviceAccount:service-<your-gcp-project-number>@gcp-sa-aiplatform-re.iam.gserviceaccount.com" \
+  --role="roles/connectors.admin" \
+  --condition=None
 ```
 
-### E. Start Local Interactive Web Playground
-To test the agent interactively in your browser and inspect streamed A2UI components:
+### B. Deploy to Agent Engine
+Run the deploy CLI command. The deployment is fully parameterized and will package your source files, synchronize dependencies, and register the Reasoning Engine dynamically in `us-central1`:
 
 ```bash
-agents-cli playground
+GOOGLE_API_USE_MTLS_ENDPOINT=never GOOGLE_API_USE_CLIENT_CERTIFICATE=false agents-cli deploy \
+  --project <your-gcp-project-id> \
+  --region us-central1 \
+  --no-confirm-project \
+  --update-env-vars "USE_JIRA_INTEGRATION_CONNECTOR=true,JIRA_CONNECTION_NAME=<your-jsm-connector-name>,MSFT_MCP_SERVER_URL=https://<your-msft-graph-mcp-run-url>/mcp,UKG_MCP_SERVER_URL=https://<your-ukg-mcp-run-url>/mcp,GOOGLE_CLOUD_REGION=us-central1"
 ```
 
----
-
-## 🚀 3. Deploying to Google Cloud Agent Engine
-
-When you are ready to transition from local prototyping to a cloud-deployed reasoning engine service:
-
-1. **Select your GCP Project:**
-   ```bash
-   gcloud config set project <your-project-id>
-   ```
-2. **Deploy to Agent Engine (Agent Runtime):**
-   Run the CLI deploy directive to automatically compile, containerize, and upload the bundle:
-   ```bash
-   agents-cli deploy
-   ```
+Once deployment completes, it will output your live **Agent Runtime ID** (e.g. `projects/<your-gcp-project-number>/locations/us-central1/reasoningEngines/<engine-id>`).
 
 ---
 
-## 🏢 4. Registering the Agent in a Gemini Enterprise App
+## 🏢 6. Linking the Agent to your Gemini Enterprise App
 
-Once the agent has been deployed to Agent Engine:
+Once deployed, link the agent to your target Gemini Enterprise application using the Google Cloud Console:
 
-1. **Publish the Agent:**
-   Execute the CLI publish command to register the reasoning engine directly with your Gemini Enterprise subscription:
-   ```bash
-   agents-cli publish gemini-enterprise
-   ```
-2. **Access via Google Cloud Console:**
-   - Navigate to the **GCP Console** -> **Agent Engine** (or **Reasoning Engine**).
-   - Open your deployed `hr_intake_agent` instance to verify that the cloud endpoints are successfully active.
-   - Link the deployed agent's service name directly under your target **Gemini Enterprise App** panel to enable conversational access for users.
+1.  **Open the GCP Console**: Navigate to the [GCP Console](https://console.cloud.google.com/) and select **`<your-gcp-project-id>`**.
+2.  **Navigate to Agent Builder**: Search for **"Agent Builder"** in the top search bar and click on **Apps** in the left sidebar.
+3.  **Select your App**: Click on the name of the Gemini App you want to connect (e.g., `Gamestop Store Agent`).
+4.  **Create / Add Agent**:
+    *   Click on the **Agents** tab in the sidebar and click **+ Add agent** (or **Create agent**).
+    *   **Step 1: Authorizations**: Click **Skip** (since the agent handles credentials at the system level using Service Accounts).
+    *   **Step 2: Configuration**:
+        *   **Agent name**: `HR Change Intake Agent`
+        *   **Describe your agent**: `An AI HR Intake & Policy Assistant designed to guide store leaders and managers through employee personnel changes (promotions, transfers, pay adjustments, and terminations), enforce company policy guidelines in real-time, and file structured review tickets.`
+        *   **Agent Engine reasoning engine**: Enter the deployed Reasoning Engine ID (e.g. `projects/<your-gcp-project-number>/locations/us-central1/reasoningEngines/<engine-id>`).
+        *   **Agent invocation specification**: `Use this agent when a user wants to initiate, manage, calculate, or submit any HR personnel changes, employee promotions, hourly pay rate adjustments, store transfers, or terminations. Do not invoke this agent for non-HR general support queries.`
+        *   **Invocation Mode**: `Automatic`
+    *   Click **Create** to finish!
 
 ---
 
-## 🧪 5. Testing in Gemini Enterprise (Sample Prompts)
+## 🧪 7. Conversational Test Suite (Suggested Prompts)
 
-Once active inside your Gemini Enterprise App interface, test the agent's full dual-MCP directories, policy calculations, justification requirements, A2UI forms, and JIRA dispatches using these **Sample Prompts**:
+Start a **New Chat** in your Gemini Enterprise App to test the multi-turn workflow:
 
-### Prompt 1: Initiating Promotion & Directory Pre-population
-*   **User Input:**
-    ```text
-    I want to promote employee EMP1001.
-    ```
-*   **Expected Response:**
-    The agent will fetch Alex Mercer's profile (displayName, mail, store Location) concurrently from the Microsoft Graph MCP, and his salary/grade from the UKG Compensation MCP. It will display a beautiful, pre-populated A2UI current details card, followed by a promotion input form asking for the target role (ASL01/SL01), proposed pay rate, and effective date.
-
-### Prompt 2: Testing High Pay Increase Policy Thresholds
-*   **User Input:**
-    *(Fill out the A2UI Form or type:)*
-    ```text
-    Promote Alex Mercer to Store Leader (SL01) at $22.50/hr starting June 1st, 2026.
-    ```
-*   **Expected Response:**
-    The agent calculates that raising Alex's pay from $16.50/hr to $22.50/hr is a **36.36% increase**, exceeding the **20% company threshold**. It will trigger the **⚠️ High Pay Increase Threshold Policy Flag**, render a warning card explaining the rule, and serve an interactive multi-line TextField asking for a business justification.
-
-### Prompt 3: Testing Backdated Effective Date Policy Gates
-*   **User Input:**
-    ```text
-    Promote Alex Mercer to Store Leader (SL01) at $24.00/hr starting May 10th, 2026.
-    ```
-*   **Expected Response:**
-    The agent audits the inputs and triggers **two simultaneous policy gates**:
-    1. **Backdated Date Gate:** The effective date is in the past relative to today's system date (May 21st, 2026). It flags this as a **⚠️ Backdated Effective Date Policy Flag**.
-    2. **High Pay Increase Gate:** The $24.00/hr rate represents a **45.45% increase** (exceeding 20%).
-    It will request justifications for both flags using interactive input fields.
-
-### Prompt 4: Providing Justification & Final Ticket Submission
-*   **User Input:**
-    ```text
-    Justification is that Alex Mercer has been performing stellar work as SGA and is fully ready to lead Store 4550. Submit the request, and notify me via SMS at +1-555-019-1002
-    ```
-*   **Expected Response:**
-    The agent will compile the inputs, successfully create a ticket in the Jira HR Review Queue (via Integration Connectors or simulated tool), dispatch an SMS notification message confirming the tickey key, and render a clean, structured **HR Reviewer Summary Card** listing the justification and verified policy flags.
+-   **Turn 1 (Pre-populate Profile):**
+    *   *User prompt:* `I want to promote employee EMP1001.`
+    *   *Expected Response:* Agent fetches Alex Mercer's Entra ID and UKG records, displays his current details card, and streams the promotion intake form.
+-   **Turn 2 (Pay Increase Threshold Check):**
+    *   *User prompt:* `Promote Alex Mercer to Store Leader (SL01) at $22.50/hr starting June 1st, 2026.`
+    *   *Expected Response:* Agent calculates a **36.36% increase** (exceeding 20%), flags the **⚠️ High Pay Increase Policy Flag**, and prompts you with an input text field for business justification.
+-   **Turn 3 (Backdated Date Gate Check):**
+    *   *User prompt:* `Promote Alex Mercer to Store Leader (SL01) at $24.00/hr starting May 10th, 2026.`
+    *   *Expected Response:* Agent flags both **⚠️ Backdated Effective Date Policy Flag** (since May 10th is in the past) and **⚠️ High Pay Increase Gate**, asking for justifications for both.
+-   **Turn 4 (Submit to JIRA):**
+    *   *User prompt:* `Justification is that Alex Mercer has been performing stellar work as SGA and is fully ready to lead Store 4550. Submit the request, and notify me via SMS at +1-555-019-1002`
+    *   *Expected Response:* Agent creates a ticket in the Jira HR Review Queue via the Integration Connector, dispatches the SMS message, and renders the visual HR Reviewer Summary Card!

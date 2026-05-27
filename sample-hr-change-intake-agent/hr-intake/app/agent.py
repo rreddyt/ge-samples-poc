@@ -15,139 +15,33 @@
 """AI-Assisted HR Personnel Change Intake Agent definition."""
 
 import os
+from datetime import datetime
 
-import google.auth
 from a2ui.basic_catalog.provider import BasicCatalog
 from a2ui.schema.manager import A2uiSchemaManager
-from dotenv import load_dotenv
 from google.adk.agents import Agent
 from google.adk.apps import App
 from google.adk.models import Gemini
-from google.adk.tools.application_integration_tool.application_integration_toolset import (
-    ApplicationIntegrationToolset,
-)
-from google.adk.tools.mcp_tool import McpToolset
-from google.adk.tools.mcp_tool.mcp_session_manager import StdioConnectionParams
 from google.adk.utils import instructions_utils
 from google.genai import types
-from mcp import StdioServerParameters
 
+import app.config as config
 from app.tools import (
+    jira_tools,
+    msft_mcp_toolset,
     send_notification,
-    submit_hr_intake_request,
+    ukg_mcp_toolset,
 )
 
-# Load .env variables at startup
-load_dotenv()
-
+# Bypass internal state constraints
 instructions_utils._is_valid_state_name = lambda var_name: False
 
-_, default_project_id = google.auth.default()
-project_id = os.environ.get("GOOGLE_CLOUD_PROJECT", default_project_id)
-
-os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
-os.environ["GOOGLE_CLOUD_LOCATION"] = os.environ.get("GOOGLE_CLOUD_LOCATION", "global")
-os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = os.environ.get(
-    "GOOGLE_GENAI_USE_VERTEXAI", "True"
-)
-os.environ["GOOGLE_API_USE_MTLS_ENDPOINT"] = os.environ.get(
-    "GOOGLE_API_USE_MTLS_ENDPOINT", "never"
-)
-os.environ["GOOGLE_API_USE_CLIENT_CERTIFICATE"] = os.environ.get(
-    "GOOGLE_API_USE_CLIENT_CERTIFICATE", "false"
-)
-
-# Dynamic JIRA tool configuration (Simulated/Mock by default, Google Integration Connector if toggled)
-use_connector = (
-    os.environ.get("USE_JIRA_INTEGRATION_CONNECTOR", "false").lower() == "true"
-)
-if use_connector:
-    jira_tool = ApplicationIntegrationToolset(
-        project=project_id,
-        location=os.environ.get("GOOGLE_CLOUD_REGION", "us-central1"),
-        connection=os.environ.get("JIRA_CONNECTION_NAME", "jira-connector"),
-        actions=["create_issue", "get_issue"],
-        tool_name_prefix="jira",
-        tool_instructions="Use this tool to create and manage intake tickets in Jira Service Management / Jira Cloud.",
-    )
-else:
-    jira_tool = submit_hr_intake_request
-
-# Resolve paths relative to this script's parent directory
-AGENT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-
-def resolve_path(path_str: str) -> str:
-    """Resolves a path. If it is relative, resolves it relative to the agent root folder."""
-    if not os.path.isabs(path_str):
-        return os.path.normpath(os.path.join(AGENT_DIR, path_str))
-    return path_str
-
-
-# Stdio connection configuration for the Microsoft Graph Mock API MCP Server
-msft_python_path = resolve_path(
-    os.environ.get(
-        "MSFT_MCP_SERVER_PYTHON_PATH",
-        "../../msft-mock-api-mcp/.venv/bin/python",
-    )
-)
-msft_script_path = resolve_path(
-    os.environ.get(
-        "MSFT_MCP_SERVER_SCRIPT_PATH",
-        "../../msft-mock-api-mcp/mcp/mock_msft_mcp_server.py",
-    )
-)
-msft_mcp_toolset = McpToolset(
-    connection_params=StdioConnectionParams(
-        server_params=StdioServerParameters(
-            command=msft_python_path,
-            args=[msft_script_path],
-            env={
-                "MSFT_API_BASE_URL": os.environ.get(
-                    "MSFT_API_BASE_URL", "http://127.0.0.1:8081"
-                ),
-                "MSFT_API_KEY": os.environ.get("MSFT_API_KEY", "mock-auth-token-123"),
-                "GOOGLE_CLOUD_PROJECT": project_id,
-                "GOOGLE_API_USE_MTLS_ENDPOINT": "never",
-                "GOOGLE_API_USE_CLIENT_CERTIFICATE": "false",
-            },
-        ),
-        timeout=30.0,
-    )
-)
-
-# Stdio connection configuration for the UKG Mock API MCP Server
-ukg_python_path = resolve_path(
-    os.environ.get(
-        "UKG_MCP_SERVER_PYTHON_PATH",
-        "../../ukg-mock-api-mcp/.venv/bin/python",
-    )
-)
-ukg_script_path = resolve_path(
-    os.environ.get(
-        "UKG_MCP_SERVER_SCRIPT_PATH",
-        "../../ukg-mock-api-mcp/mcp/mock_ukg_mcp_server.py",
-    )
-)
-ukg_mcp_toolset = McpToolset(
-    connection_params=StdioConnectionParams(
-        server_params=StdioServerParameters(
-            command=ukg_python_path,
-            args=[ukg_script_path],
-            env={
-                "UKG_API_BASE_URL": os.environ.get(
-                    "UKG_API_BASE_URL",
-                    "http://127.0.0.1:8080",
-                ),
-                "UKG_API_KEY": os.environ.get("UKG_API_KEY", "mock-auth-token-123"),
-                "GOOGLE_CLOUD_PROJECT": project_id,
-                "GOOGLE_API_USE_MTLS_ENDPOINT": "never",
-                "GOOGLE_API_USE_CLIENT_CERTIFICATE": "false",
-            },
-        ),
-        timeout=30.0,
-    )
-)
+# Bind Google SDK variables to configuration parameters
+os.environ["GOOGLE_CLOUD_PROJECT"] = config.GOOGLE_CLOUD_PROJECT
+os.environ["GOOGLE_CLOUD_LOCATION"] = config.GOOGLE_CLOUD_LOCATION
+os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "True"
+os.environ["GOOGLE_API_USE_MTLS_ENDPOINT"] = "never"
+os.environ["GOOGLE_API_USE_CLIENT_CERTIFICATE"] = "false"
 
 # Initialize A2UI Schema Manager (A2UI Specification v0.9)
 schema_manager = A2uiSchemaManager(
@@ -163,7 +57,10 @@ Your goal is to guide Store Leaders through a simple, conversational intake proc
 4. Terminations
 """
 
-WORKFLOW_DESCRIPTION = """
+# Inject current date dynamically to keep instructions precise relative to today
+current_system_date = datetime.now().strftime("%Y-%m-%d")
+
+WORKFLOW_DESCRIPTION = f"""
 Your workflow must follow these stages:
 
 ### Stage 1: Greet and Identify Intent
@@ -182,7 +79,7 @@ Based on the change type, dynamically ask the manager for only the required fiel
 
 ### Stage 4: Real-time Policy Auditing
 As the Store Leader inputs fields, evaluate them in real-time against company policy guidelines. You must proactively audit:
-- **Date Check:** Effective date must be today or in the future. The current system date is 2026-05-21. If the effective date is in the past (e.g., May 10, 2026), flag it as a "⚠️ Backdated Effective Date Policy Flag" and prompt the manager for a required business justification.
+- **Date Check:** Effective date must be today or in the future. The current system date is {current_system_date}. If the effective date is in the past, flag it as a "⚠️ Backdated Effective Date Policy Flag" and prompt the manager for a required business justification.
 - **Pay Thresholds Check:** Retrieve pay grades using `validate_pay_thresholds` for the target job code. Verify if the proposed hourly rate is between the minimum and maximum pay rates. If it is outside bounds, flag it as a policy violation.
 - **Pay Increase Check:** Calculate the percentage increase from their current base hourly pay rate (which you retrieved via `get_employee_compensation` in Stage 2). In your response, explicitly state that the calculation is based on the current pay rate of $16.50/hr retrieved from the UKG database. If the increase exceeds 20%, flag it as a "⚠️ High Pay Increase Threshold Policy Flag" and ask the manager for a business justification.
 
@@ -239,22 +136,21 @@ You MUST strictly adhere to these technical constraints on EVERY conversation tu
 """
 
 root_agent = Agent(
-    name="hr_intake_agent",
+    name="root_agent",
     model=Gemini(
-        model="gemini-flash-latest",
+        model=config.GEMINI_MODEL,
         retry_options=types.HttpRetryOptions(attempts=3),
     ),
     generate_content_config=types.GenerateContentConfig(
-        max_output_tokens=4096,
+        max_output_tokens=config.GEMINI_MAX_OUTPUT_TOKENS,
     ),
     description="AI HR Intake & Policy Assistant for Store Leaders supporting A2UI and A2A.",
     instruction=SYSTEM_INSTRUCTION,
     tools=[
         msft_mcp_toolset,
-        jira_tool,
         send_notification,
         ukg_mcp_toolset,
-    ],
+    ] + jira_tools,
 )
 
 app = App(
