@@ -1,14 +1,14 @@
-# 🧰 UKG Pro (HR/Payroll) MCP Integration Server PoC
+# 🧰 UKG Pro (HR/Payroll) Mock MCP Integration Server
 
-A complete Proof of Concept (PoC) demonstrating how to integrate a retail store HR and Compensation system (UKG Pro) with **Gemini Enterprise (Vertex AI Agent Builder)** using the **Model Context Protocol (MCP)**. 
+A complete mock MCP server implementation to integrate to a retail store's HR and Compensation system (UKG Pro) from agents deployed in **Gemini Enterprise Agent Platform** using the **Model Context Protocol (MCP)**. 
 
-This server runs on **Google Cloud Run**, is backed by a mock dataset in **Google BigQuery**, and exposes secure, real-time tool-calling capabilities to your Gemini Enterprise AI agents.
+This mock server runs on **Google Cloud Run**, is backed by a mock dataset in **Google BigQuery**, and exposes secure, real-time tool-calling capabilities to your Gemini Enterprise AI agents.
 
 ---
 
 ## 🛠️ 1. Prerequisites & GCP Configuration
 
-Before building, deploying, and running this PoC, ensure that your Google Cloud environment has the required APIs enabled and appropriate IAM roles assigned.
+Before building, deploying, and running this sample, ensure that your Google Cloud environment has the required APIs enabled and appropriate IAM roles assigned.
 
 ### 1. Required Google Cloud APIs
 Run the following command to enable all the required services in your project:
