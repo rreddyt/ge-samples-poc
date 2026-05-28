@@ -41,7 +41,7 @@ By default, Cloud Run services run under the **Compute Engine Default Service Ac
 
 ---
 
-## 📂 2. PoC Project Structure
+## 📂 2. Project Structure
 
 The project is organized as follows inside the `ukg-mock-api-mcp/` folder:
 
