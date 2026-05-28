@@ -135,6 +135,12 @@ You MUST strictly adhere to these technical constraints on EVERY conversation tu
 4. **Hierarchy:** All subsequent components in the array MUST be descendants of the root component (i.e. their `parentId` must be "root" or trace back to "root").
 """
 
+async def initialize_a2ui_catalog_in_state(callback_context):
+    """Pre-seeds the session state with the A2UI Catalog for structural part conversion."""
+    state = callback_context.state
+    state["system:a2ui_catalog"] = schema_manager.get_selected_catalog()
+
+
 root_agent = Agent(
     name="root_agent",
     model=Gemini(
@@ -146,6 +152,7 @@ root_agent = Agent(
     ),
     description="AI HR Intake & Policy Assistant for Store Leaders supporting A2UI and A2A.",
     instruction=SYSTEM_INSTRUCTION,
+    before_agent_callback=initialize_a2ui_catalog_in_state,
     tools=[
         msft_mcp_toolset,
         send_notification,

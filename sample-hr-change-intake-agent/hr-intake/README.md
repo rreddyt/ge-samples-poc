@@ -97,7 +97,7 @@ Ensure styling, type safety, and unit/integration tests are 100% correct:
 uv run ty check .
 
 # Run complete unit and integration test suite
-uv run pytest tests/integration/test_agent.py
+uv run pytest
 ```
 
 ### C. Start Local Interactive Web Playground
@@ -139,23 +139,32 @@ Once deployment completes, it will output your live **Agent Runtime ID** (e.g. `
 
 ---
 
-## 🏢 6. Linking the Agent to your Gemini Enterprise App
+## 🏢 6. Linking the Agent to your Gemini Enterprise App (A2A Registration)
 
-Once deployed, link the agent to your target Gemini Enterprise application using the Google Cloud Console:
+Once your agent is deployed to Agent Runtime, you can register it to your Gemini Enterprise application using the A2A protocol. This allows other peer agents and orchestrators to discover your agent's capabilities via its A2A `agent_card` and render its A2UI widgets seamlessly.
 
-1.  **Open the GCP Console**: Navigate to the [GCP Console](https://console.cloud.google.com/) and select **`<your-gcp-project-id>`**.
-2.  **Navigate to Agent Builder**: Search for **"Agent Builder"** in the top search bar and click on **Apps** in the left sidebar.
-3.  **Select your App**: Click on the name of the Gemini App you want to connect (e.g., `Gamestop Store Agent`).
-4.  **Create / Add Agent**:
-    *   Click on the **Agents** tab in the sidebar and click **+ Add agent** (or **Create agent**).
-    *   **Step 1: Authorizations**: Click **Skip** (since the agent handles credentials at the system level using Service Accounts).
-    *   **Step 2: Configuration**:
-        *   **Agent name**: `HR Change Intake Agent`
-        *   **Describe your agent**: `An AI HR Intake & Policy Assistant designed to guide store leaders and managers through employee personnel changes (promotions, transfers, pay adjustments, and terminations), enforce company policy guidelines in real-time, and file structured review tickets.`
-        *   **Agent Engine reasoning engine**: Enter the deployed Reasoning Engine ID (e.g. `projects/<your-gcp-project-number>/locations/us-central1/reasoningEngines/<engine-id>`).
-        *   **Agent invocation specification**: `Use this agent when a user wants to initiate, manage, calculate, or submit any HR personnel changes, employee promotions, hourly pay rate adjustments, store transfers, or terminations. Do not invoke this agent for non-HR general support queries.`
-        *   **Invocation Mode**: `Automatic`
-    *   Click **Create** to finish!
+### Register via CLI (Recommended)
+To register the deployed A2A agent to a parent Gemini Enterprise App, run the `publish` command:
+
+```bash
+agents-cli publish gemini-enterprise \
+  --registration-type a2a \
+  --gemini-enterprise-app-id projects/<your-gcp-project-id>/locations/global/collections/default_collection/engines/<your-parent-app-id>
+```
+
+> [!NOTE]
+> The CLI will automatically detect that the agent is configured for A2A from `deployment_metadata.json` (via `"is_a2a": true`), dynamically construct the Reasoning Engine's A2A agent card endpoint URL, and register it directly to the parent app.
+
+### Manual Registration (Alternative)
+If you prefer to register the agent manually via the Google Cloud Console:
+1. **Open the GCP Console**: Navigate to **Gemini Enterprise** → select your **App** (e.g. `Store Leader Assistant`) → select **Agents** tab in the sidebar.
+2. **Add Agent**: Click on **+ Add agent**.
+3. **Step 1: Choose an Agent Type**: Click on **Add** under "Custom Agent via A2A" option.
+4. **Step 2: Import Agent**: 
+   * **Agent Card JSON**: Get Agent Card JSON from URL `https://us-central1-aiplatform.googleapis.com/v1beta1/projects/<your-gcp-project-id>/locations/us-central1/reasoningEngines/<your-reasoning-engine-id>/a2a/v1/card` and paste it in the text area.
+   * **Agent invocation specification**: This description is used by the LLM to understand the agent's purpose and decide when to use it.
+   * **Invocation Mode**: Select 'Automatic'.
+5. **Step 3: Authorizations**: Click **Skip & Finish** (Service Account authentication is managed automatically by Agent Runtime).
 
 ---
 

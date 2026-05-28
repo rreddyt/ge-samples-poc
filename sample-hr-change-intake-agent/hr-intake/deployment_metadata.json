@@ -1,6 +1,6 @@
 {
   "remote_agent_runtime_id": "None",
   "deployment_target": "agent_runtime",
-  "is_a2a": false,
+  "is_a2a": true,
   "deployment_timestamp": "None"
 }
