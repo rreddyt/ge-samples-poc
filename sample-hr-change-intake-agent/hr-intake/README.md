@@ -1,8 +1,8 @@
 # HR Change Intake & Policy Auditing Agent
 
-An AI-assisted, premium agentic intake engine designed to orchestrate HR personnel changes (promotions, transfers, terminations, pay adjustments) for Store Leaders, enforce company policy guidelines in real-time, and file structured review tickets.
+An AI-assisted, premium agentic intake engine designed to orchestrate HR personnel changes (promotions, transfers, terminations, pay adjustments) for Retail Store Leaders, enforce company policy guidelines in real-time, and file structured tickets for HR to review.
 
-Built with **Google Agent Development Kit (ADK)**, and fully compatible with both the **Agent Engine (Agent Runtime)** platform and **Gemini Enterprise** conversational Apps.
+Built with **Google Agent Development Kit (ADK)**, and fully deployable to the **Gemini Enterprise Agent Platform Runtime (Agent Engine)** and compatible to be linked to **Gemini Enterprise Apps**.
 
 ---
 
