@@ -1,14 +1,14 @@
-# Google Cloud GenAI Customer Proof of Concepts (PoCs)
+# Google Cloud Gemini Enterprise Samples
 
-Welcome to the **`ge-customer-pocs`** repository! This repository is a curated catalog of reference implementations, custom integrations, and Proof of Concepts (PoCs) designed for Google Cloud customers.
+Welcome to the **`ge-samples`** repository! This repository is a curated catalog of reference implementations,  integrations, and AI agent samples designed for Google Cloud customers.
 
-These assets demonstrate best practices in architecting advanced generative AI systems using **Gemini Enterprise (Vertex AI Agent Builder)**, **Model Context Protocol (MCP)**, and rich client interfaces such as **Agent-to-UI (A2UI)** and **Agent-to-Agent (A2A)**.
+These assets demonstrate best practices in architecting AI agents and systems using Google's **Gemini Enterprise** portfolio (Agent Platform and Gemini Enterprise App), **Model Context Protocol (MCP)**, **Agent-to-Agent (A2A)** protocol, **Integration Connectors**, and rich client interfaces such as **Agent-to-UI (A2UI)**.
 
 ---
 
 ## 📂 Catalog & Sub-Projects
 
-Each directory in this repository is a self-contained PoC project. Click on the links below to view their dedicated architecture diagrams, setup configurations, and deployment guides:
+Each directory in this repository is a self-contained sample. Click on the links below to view their dedicated architecture diagrams, setup configurations, and deployment guides:
 
 | Project Name & Directory Link | Key Technologies | Use Case & Description |
 | :--- | :--- | :--- |
