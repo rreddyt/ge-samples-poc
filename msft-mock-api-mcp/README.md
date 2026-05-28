@@ -1,14 +1,14 @@
 # 🧰 Microsoft Graph (Entra ID) MCP Integration Server PoC
 
-A complete Proof of Concept (PoC) demonstrating how to integrate employee directory lookups (Microsoft Entra ID / Graph API) with **Gemini Enterprise (Vertex AI Agent Builder)** using the **Model Context Protocol (MCP)**. 
+A complete mock MCP implementation to integrate employee directory lookups (Microsoft Entra ID / Graph API) with agents deployed in **Gemini Enterprise Agent Platform** using the **Model Context Protocol (MCP)**. 
 
-This server runs on **Google Cloud Run**, is backed by a mock dataset in **Google BigQuery**, and exposes secure, real-time tool-calling capabilities to your Gemini Enterprise AI agents.
+This mock server runs on **Google Cloud Run**, is backed by a mock dataset in **Google BigQuery**, and exposes secure, real-time tool-calling capabilities to your Gemini Enterprise AI agents.
 
 ---
 
 ## 🛠️ 1. Prerequisites & GCP Configuration
 
-Before building, deploying, and running this PoC, ensure that your Google Cloud environment has the required APIs enabled and appropriate IAM roles assigned.
+Before building, deploying, and running this sample, ensure that your Google Cloud environment has the required APIs enabled and appropriate IAM roles assigned.
 
 ### 1. Required Google Cloud APIs
 Run the following command to enable all the required services in your project:
@@ -41,7 +41,7 @@ By default, Cloud Run services run under the **Compute Engine Default Service Ac
 
 ---
 
-## 📂 2. PoC Project Structure
+## 📂 2. Project Structure
 
 The project is organized as follows inside the `msft-mock-api-mcp/` folder:
 
