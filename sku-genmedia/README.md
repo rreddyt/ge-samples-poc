@@ -77,13 +77,61 @@ To execute the multi-agent workflow on all mock products inside BigQuery:
 uv run python gen-script.py
 ```
 
-### Step 7: Deploy the Agent
-Once tested, deploy your agent directly to the Vertex AI Agent Platform Runtime (Agent Engine):
+### Step 7: Deploy the Agent to Agent Engine (Agent Platform Runtime)
+Once local testing in the playground is complete, deploy your agent directly to the Vertex AI Agent Platform Runtime (Agent Engine):
 ```bash
+# 1. Set your active GCP project ID
 gcloud config set project <your-project-id>
-agents-cli deploy --deployment-target agent_runtime
+
+# 2. Deploy the agent to Agent Runtime
+agents-cli deploy --deployment-target agent_runtime --region=us-central1
 ```
-> 💡 **Agent Platform Runtime (A2A):** The agent is deployed as a reasoning engine that natively implements the **Agent-to-Agent (A2A)** protocol. Once deployed, other corporate agents can securely invoke it using standard A2A.
+Upon successful completion, `agents-cli` will print the deployed **Reasoning Engine resource path** (e.g., `projects/<your-project-id>/locations/us-central1/reasoningEngines/<engine-id>`) and automatically write it to the `deployment_metadata.json` file.
+
+---
+
+### Step 8: Invoke and Test the Deployed Agent
+There are two main ways to query and test your deployed reasoning engine:
+
+#### Option A: Using the `agents-cli` command-line runner (Recommended for testing A2A)
+The ADK CLI provides a built-in runner that handles authentication and invokes the reasoning engine utilizing the **Agent-to-Agent (A2A)** protocol:
+```bash
+# Invoke via A2A protocol
+agents-cli run --url https://us-central1-aiplatform.googleapis.com/v1/projects/<your-project-id>/locations/us-central1/reasoningEngines/<engine-id> \
+  --mode a2a \
+  "Please execute the enrichment workflow for the product catalog. SKU: SKU-10948 Name: Boho Chic Tufted Throw Pillow Description: Cream tufted throw pillow Category: Pillows"
+```
+*Replace `<your-project-id>` and `<engine-id>` with your actual deployment coordinates.*
+
+#### Option B: Programmatically via the Vertex AI SDK in Python
+You can load and invoke the deployed reasoning engine directly inside a Python script or Jupyter notebook:
+```python
+import vertexai
+
+# 1. Initialize Vertex AI
+vertexai.init(project="<your-project-id>", location="us-central1")
+
+# 2. Retrieve the deployed reasoning engine
+client = vertexai.Client(location="us-central1")
+agent = client.agent_engines.get(
+    name="projects/<your-project-id>/locations/us-central1/reasoningEngines/<engine-id>"
+)
+
+# 3. Query the agent
+message = """
+Please execute the enrichment workflow for the product catalog.
+Product Details:
+SKU: SKU-10948
+Name: Boho Chic Tufted Throw Pillow
+Description: A gorgeous, cream-colored woven cotton throw pillow.
+Category: Pillows
+"""
+async for event in agent.async_stream_query(message=message, user_id="test_user"):
+    print(event)
+```
+
+---
+
 
 
 ---
