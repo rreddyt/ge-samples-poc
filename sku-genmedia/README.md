@@ -13,6 +13,7 @@ sku-genmedia/
 │   ├── tools.py         # Externalized tools, GCP client initializations, and configurations
 │   └── app_utils/       # ADK/FastAPI typing and telemetry helpers
 ├── setup_gcp.py         # GCP resource provisioning (auto-populates mock BQ data & GCS images using Gemini)
+├── cleanup_gcp.py       # GCP resource teardown (undeploys agent, deletes BQ dataset and GCS bucket)
 ├── gen-script.py        # CLI runner to execute the collaborative agent workflow at scale
 ├── tests/               # Unit and integration testing suites
 ├── GEMINI.md            # Developer onboarding instructions
@@ -115,3 +116,17 @@ Configure your retail agent by adjusting the following environment variables in 
   ```bash
   agents-cli scaffold enhance
   ```
+
+---
+
+## 🧹 GCP Teardown & Cleanup
+
+To completely undeploy the Cloud Run agent service and destroy all associated BigQuery tables/data and Cloud Storage buckets/media, simply execute the cleanup script:
+```bash
+uv run python cleanup_gcp.py
+```
+This script automatically:
+- Undeploys and deletes the **`sku-genmedia`** Cloud Run service from the target GCP region.
+- Deletes the entire BigQuery dataset containing the source products table and enriched tags table recursively.
+- Deletes all uploaded folders, category guidelines, and Imagen-generated assets inside the GCS bucket, before deleting the bucket itself.
+
