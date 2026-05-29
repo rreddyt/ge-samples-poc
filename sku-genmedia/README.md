@@ -11,9 +11,10 @@ sku-genmedia/
 ├── app/
 │   ├── agent.py         # Agent declarations (Tagging and Creative Image agents)
 │   ├── tools.py         # Externalized tools, GCP client initializations, and configurations
+│   ├── agent_runtime_app.py # Entrypoint class for Vertex AI Agent Platform Runtime (Agent Engine)
 │   └── app_utils/       # ADK/FastAPI typing and telemetry helpers
 ├── setup_gcp.py         # GCP resource provisioning (auto-populates mock BQ data & GCS images using Gemini)
-├── cleanup_gcp.py       # GCP resource teardown (undeploys agent, deletes BQ dataset and GCS bucket)
+├── cleanup_gcp.py       # GCP resource teardown (undeploys reasoning engine, BQ dataset and GCS bucket)
 ├── gen-script.py        # CLI runner to execute the collaborative agent workflow at scale
 ├── tests/               # Unit and integration testing suites
 ├── GEMINI.md            # Developer onboarding instructions
@@ -77,11 +78,13 @@ uv run python gen-script.py
 ```
 
 ### Step 7: Deploy the Agent
-Once tested, deploy your agents-cli application directly to Cloud Run:
+Once tested, deploy your agent directly to the Vertex AI Agent Platform Runtime (Agent Engine):
 ```bash
 gcloud config set project <your-project-id>
-agents-cli deploy
+agents-cli deploy --deployment-target agent_runtime
 ```
+> 💡 **Agent Platform Runtime (A2A):** The agent is deployed as a reasoning engine that natively implements the **Agent-to-Agent (A2A)** protocol. Once deployed, other corporate agents can securely invoke it using standard A2A.
+
 
 ---
 
@@ -121,12 +124,13 @@ Configure your retail agent by adjusting the following environment variables in 
 
 ## 🧹 GCP Teardown & Cleanup
 
-To completely undeploy the Cloud Run agent service and destroy all associated BigQuery tables/data and Cloud Storage buckets/media, simply execute the cleanup script:
+To completely undeploy the Agent Platform reasoning engine and destroy all associated BigQuery tables/data and Cloud Storage buckets/media, simply execute the cleanup script:
 ```bash
 uv run python cleanup_gcp.py
 ```
 This script automatically:
-- Undeploys and deletes the **`sku-genmedia`** Cloud Run service from the target GCP region.
+- Undeploys and deletes the **`sku-genmedia`** reasoning engine instance from Vertex AI Agent Platform in the target GCP region.
 - Deletes the entire BigQuery dataset containing the source products table and enriched tags table recursively.
 - Deletes all uploaded folders, category guidelines, and Imagen-generated assets inside the GCS bucket, before deleting the bucket itself.
+
 

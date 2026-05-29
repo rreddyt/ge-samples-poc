@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import os
-import subprocess
 
 # Early load environment variables from .env
 try:
@@ -31,7 +30,7 @@ from google.cloud import bigquery
 from google.cloud import storage
 
 def cleanup_resources():
-    """Undeploys the Cloud Run service and deletes the BigQuery dataset and GCS bucket."""
+    """Undeploys the reasoning engine and deletes the BigQuery dataset and GCS bucket."""
     
     # 1. Determine GCP configuration from environment or default context
     try:
@@ -55,7 +54,7 @@ def cleanup_resources():
     print(f"   Location/Region:     {location}")
     print(f"   GCS Bucket to delete: {bucket_name}")
     print(f"   BQ Dataset to delete: {bq_dataset}")
-    print(f"   Cloud Run Service:   {service_name}")
+    print(f"   Reasoning Engine:    {service_name}")
     print("=" * 80)
 
     # Initialize clients
@@ -67,26 +66,24 @@ def cleanup_resources():
         return
 
     # --------------------------------------------------------------------------
-    # 2. Undeploy / Delete Cloud Run Service
+    # 2. Undeploy / Delete Reasoning Engine (Agent Runtime)
     # --------------------------------------------------------------------------
-    print(f"\n1. Deleting Cloud Run Service '{service_name}' in region '{location}'...")
-    cmd = [
-        "gcloud", "run", "services", "delete", service_name,
-        f"--project={project_id}",
-        f"--region={location}",
-        "--quiet"
-    ]
+    print(f"\n1. Deleting Agent Platform Reasoning Engine '{service_name}' in region '{location}'...")
     try:
-        res = subprocess.run(cmd, capture_output=True, text=True)
-        if res.returncode == 0:
-            print(f"  🎉 Cloud Run service '{service_name}' deleted successfully!")
+        from google.cloud import aiplatform
+        aiplatform.init(project=project_id, location=location)
+        
+        # Find Reasoning Engine by display name
+        engines = aiplatform.ReasoningEngine.list(filter=f'display_name="{service_name}"')
+        if engines:
+            for engine in engines:
+                print(f"  🗑️ Deleting Reasoning Engine: {engine.resource_name}...")
+                engine.delete()
+                print(f"  🎉 Reasoning Engine '{engine.resource_name}' deleted successfully!")
         else:
-            if "not found" in res.stderr.lower() or "not_found" in res.stderr.lower():
-                print(f"  ✓ Cloud Run service '{service_name}' not found (already deleted or not deployed).")
-            else:
-                print(f"  ⚠️ Warning during service deletion: {res.stderr.strip()}")
-    except Exception as run_err:
-        print(f"  ❌ Failed to execute gcloud command: {run_err}")
+            print(f"  ✓ Reasoning Engine '{service_name}' not found or already deleted.")
+    except Exception as engine_err:
+        print(f"  ❌ Failed to delete Reasoning Engine: {engine_err}")
 
     # --------------------------------------------------------------------------
     # 3. Delete BigQuery Dataset & Tables
