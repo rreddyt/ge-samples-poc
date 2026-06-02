@@ -15,7 +15,7 @@
 variable "project_name" {
   type        = string
   description = "Project name used as a base for resource naming"
-  default     = "sku-genmedia"
+  default     = "product-media-agent"
 }
 
 variable "project_id" {
@@ -32,13 +32,13 @@ variable "region" {
 variable "telemetry_logs_filter" {
   type        = string
   description = "Log Sink filter for capturing telemetry data. Captures logs with the `traceloop.association.properties.log_type` attribute set to `tracing`."
-  default     = "labels.service_name=\"sku-genmedia\" labels.type=\"agent_telemetry\""
+  default     = "labels.service_name=\"product-media-agent\" labels.type=\"agent_telemetry\""
 }
 
 variable "feedback_logs_filter" {
   type        = string
   description = "Log Sink filter for capturing feedback data. Captures logs where the `log_type` field is `feedback`."
-  default     = "jsonPayload.log_type=\"feedback\" jsonPayload.service_name=\"sku-genmedia\""
+  default     = "jsonPayload.log_type=\"feedback\" jsonPayload.service_name=\"product-media-agent\""
 }
 
 variable "app_sa_roles" {

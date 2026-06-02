@@ -48,8 +48,8 @@ app: FastAPI = get_fast_api_app(
     session_service_uri=session_service_uri,
     otel_to_cloud=True,
 )
-app.title = "sku-genmedia"
-app.description = "API for interacting with the Agent sku-genmedia"
+app.title = "product-media-agent"
+app.description = "API for interacting with the Agent product-media-agent"
 
 # Manually configure and expose A2A REST endpoints to serve Gemini Enterprise A2A calls
 import json

@@ -1,5 +1,5 @@
 # Project name used for resource naming
-project_name = "sku-genmedia"
+project_name = "product-media-agent"
 
 # Your Google Cloud project id
 project_id = "your-gcp-project-id"

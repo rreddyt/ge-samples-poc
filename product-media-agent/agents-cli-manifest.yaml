@@ -1,4 +1,4 @@
-name: sku-genmedia
+name: product-media-agent
 description: ReAct agent with Agent Runtime support
 base_template: adk
 agent_directory: app

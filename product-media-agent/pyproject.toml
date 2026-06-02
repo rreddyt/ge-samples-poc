@@ -1,5 +1,5 @@
 [project]
-name = "sku-genmedia"
+name = "product-media-agent"
 version = "0.1.0"
 description = ""
 authors = [
