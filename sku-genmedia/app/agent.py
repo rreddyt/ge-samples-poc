@@ -12,80 +12,93 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-from google.adk.agents import Agent, SequentialAgent
+from google.adk.agents import Agent
 from google.adk.apps import App
-from google.adk.models import Gemini
 
-# Import all GCP clients, configs, and tools from tools.py
 from app.tools import (
-    update_bq_tags,
-    generate_lifestyle_image,
-    list_product_360_images,
-    read_category_guidelines,
-    bq_client,
-    storage_client,
-    project_id,
-    bq_dataset,
-    bq_products_table,
-    bq_tags_table,
-    products_table_id,
-    tags_table_id,
-    bucket_name,
+    get_product_details,
+    generate_and_save_lifestyle_image,
+    generate_and_save_lifestyle_video,
 )
 
 # ---------------------------------------------------------
-# Define the Collaborative Agents
+# Define the Specialized Sub-Agents
 # ---------------------------------------------------------
 
-# Agent A: Handles categorisation and catalog enrichment tags
-tagging_agent = Agent(
-    name="tagging_agent",
-    model="gemini-2.5-flash",
-    instruction="""You are a premium retail catalog analyst for a high-end retail brand.
-    Given a product's SKU, Name, and Description:
-    1. Analyze the product traits and design style.
-    2. Formulate a list of 5-10 highly relevant, descriptive tags suitable for search filtering and categorization.
-    3. Call the `update_bq_tags` tool to save these tags to the BigQuery database.
-    4. Provide a concise summary of the generated tags in your output.""",
-    tools=[update_bq_tags],
+# Sub-Agent A: Dedicated image generator using gemini-3.1-flash-image
+image_generation_agent = Agent(
+    name="image_generation_agent",
+    model="gemini-3.5-flash",
+    instruction="""You are a specialized AI creative specialist dedicated to generating premium lifestyle photography.
+    Your goal is to generate high-quality lifestyle photos using the **gemini-3.1-flash-image** model.
+    
+    To fulfill requests:
+    1. Call the `generate_and_save_lifestyle_image` tool, passing the exact `product_id`.
+    2. If provided, include custom aesthetic, setting, or lighting directions as `additional_instructions`.
+    3. Return the resulting GCS path and details back to the director.""",
+    tools=[generate_and_save_lifestyle_image],
 )
 
-# Agent B: Handles composing high-end marketing prompts and calling image generation using GCS 360 views and GCS category styling guidelines
-image_agent = Agent(
-    name="image_agent",
-    model="gemini-2.5-flash",
-    instruction="""You are an elite creative director for a high-end retail brand.
-    Given a product's SKU, Name, Description, Category, and GCS folder of 360 product images:
-    1. Call the `read_category_guidelines` tool with the product Category to fetch the specific brand styling and image guidelines for this category.
-    2. Call the `list_product_360_images` tool with the SKU to locate all GCS images showing the product alone from all angles.
-    3. Review the product's visual appearance from all visual angles (front, side, back, shape, texture, color, styling details) provided inside the GCS images.
-    4. Compose a highly detailed, premium prompt for Google's Imagen 3 model to render this product styled inside an aspirational consumer lifestyle setting.
-       - You MUST strictly follow the styling, lights, background, and room rules fetched from your `read_category_guidelines` tool call.
-       - Focus on positioning the product exactly as it looks in the images (e.g. details from the 360 angles), styled beautifully according to the category guidelines.
-       - Avoid plain or chaotic backdrops; use beautiful, harmonious living spaces.
-    5. Call the `generate_lifestyle_image` tool with the SKU, product name, a representative product GCS image path (e.g., front.png), and your composed creative prompt to render and store the lifestyle image in GCS.
-    6. Return the GCS URL of the successfully generated lifestyle image.""",
-    tools=[generate_lifestyle_image, list_product_360_images, read_category_guidelines],
+# Sub-Agent B: Dedicated video generator using veo-3.1-fast-generate-001
+video_generation_agent = Agent(
+    name="video_generation_agent",
+    model="gemini-3.5-flash",
+    instruction="""You are a specialized AI video director dedicated to producing high-definition lifestyle content.
+    Your goal is to produce premium 8-second videos using the **veo-3.1-fast-generate-001** model.
+    
+    To fulfill requests:
+    1. Call the `generate_and_save_lifestyle_video` tool, passing the exact `product_id`.
+    2. If provided, include custom camera movement or setting directions as `additional_instructions`.
+    3. Return the resulting GCS path and details back to the director.""",
+    tools=[generate_and_save_lifestyle_video],
 )
-
 
 # ---------------------------------------------------------
-# Define the Multi-Agent Sequential Workflow & App
+# Define the Root Orchestrator (Media Director Agent)
 # ---------------------------------------------------------
 
-# SequentialAgent executes agents in order: Tagging -> Creative Image Gen
-catalog_enrichment_workflow = SequentialAgent(
-    name="catalog_enrichment_workflow",
-    sub_agents=[tagging_agent, image_agent],
+media_director_agent = Agent(
+    name="media_director_agent",
+    model="gemini-3.5-flash",
+    instruction="""You are the elite AI Marketing Director and Orchestrator.
+    You have two specialized sub-agents at your command:
+    1. `image_generation_agent` (specialist for creating lifestyle images using gemini-3.1-flash-image).
+    2. `video_generation_agent` (specialist for creating lifestyle videos using veo-3.1-fast-generate-001).
+    
+    You also have direct access to the catalog search tool `get_product_details`.
+
+    How to delegate and process user requests:
+    
+    1. **Fetch Product Catalog Info**:
+       - To query catalog details, call `get_product_details` with the product ID or limit.
+       
+    2. **Generate Lifestyle Image**:
+       - Delegate the task to the `image_generation_agent` with the `product_id` and any styling preferences as `additional_instructions`.
+       
+    3. **Generate Lifestyle Video**:
+       - Delegate the task to the `video_generation_agent` with the `product_id` and any camera/movement preferences as `additional_instructions`.
+       
+    4. **Batch Image Generation**:
+       - First, call `get_product_details` with the specified `limit` (default 5).
+       - For each product record returned, delegate the image generation task to the `image_generation_agent`.
+       
+    Always present a premium, professional, executive-level summary of all the generated content along with their Cloud Storage GCS URIs (gs://...).""",
+    sub_agents=[
+        image_generation_agent,
+        video_generation_agent,
+    ],
+    tools=[
+        get_product_details,
+    ],
 )
 
-root_agent = catalog_enrichment_workflow
+root_agent = media_director_agent
 
-# Expose App for agents-cli local playground, run, and evaluation
+# ---------------------------------------------------------
+# Expose App for local runs, playground, and evals
+# ---------------------------------------------------------
+
 app = App(
-    root_agent=catalog_enrichment_workflow,
+    root_agent=media_director_agent,
     name="app",
 )
-
-

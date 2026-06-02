@@ -1,10 +1,10 @@
 {
   "eval_set_id": "basic_eval",
   "name": "Basic Agent Evaluation",
-  "description": "Sample evaluation set for testing core agent functionality. Customize these cases based on your DESIGN_SPEC.md.",
+  "description": "Sample evaluation set for testing the media generation agent's core capabilities: catalog searching, lifestyle image generation, and video generation.",
   "eval_cases": [
     {
-      "eval_id": "greeting",
+      "eval_id": "greeting_and_capabilities",
       "conversation": [
         {
           "user_content": {
@@ -19,11 +19,41 @@
       }
     },
     {
-      "eval_id": "weather_query",
+      "eval_id": "generate_lifestyle_image",
       "conversation": [
         {
           "user_content": {
-            "parts": [{"text": "What's the weather like in San Francisco?"}]
+            "parts": [{"text": "Please generate a lifestyle image for product ID 10948 with instructions: Show it on a rustic wooden table."}]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "app",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "generate_lifestyle_video",
+      "conversation": [
+        {
+          "user_content": {
+            "parts": [{"text": "Can you produce a lifestyle video shot for product ID 88492?"}]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "app",
+        "user_id": "eval_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "batch_generate_images",
+      "conversation": [
+        {
+          "user_content": {
+            "parts": [{"text": "Batch generate lifestyle images for the first 2 products in the catalog."}]
           }
         }
       ],
