@@ -17,7 +17,7 @@ dependencies = [
     "google-cloud-bigquery>=3.20.0",
     "google-cloud-storage>=2.15.0",
     "google-genai>=0.1.0",
-    "google-cloud-aiplatform[evaluation,agent-engines]>=1.130.0",
+    "google-cloud-aiplatform[agent-engines,evaluation]>=1.150.0",
     "protobuf>=6.31.1,<7.0.0",
 ]
 requires-python = ">=3.11,<3.14"
@@ -97,26 +97,4 @@ asyncio_default_fixture_loop_scope = "function"
 
 [tool.hatch.build.targets.wheel]
 packages = ["app","frontend"]
-
-[tool.agents-cli]
-# Generation metadata - enables CLI commands to understand project context
-# These fields allow any generated project to work as a remote template
-name = "sku-genmedia"
-description = "ReAct agent with A2A protocol and Agent Runtime support"
-base_template = "adk_a2a"
-agent_directory = "app"
-
-# Generation context
-generated_at = "2026-05-28T18:29:51.099473+00:00"
-acli_version = "0.1.0"
-
-[tool.agents-cli.create_params]
-# Parameters used during project creation
-deployment_target = "agent_runtime"
-session_type = "in_memory"
-cicd_runner = "skip"
-include_data_ingestion = false
-is_a2a = true
-
-datastore = "none"
 

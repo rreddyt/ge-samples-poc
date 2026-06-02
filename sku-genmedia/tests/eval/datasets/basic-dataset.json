@@ -1,0 +1,48 @@
+{
+  "eval_cases": [
+    {
+      "eval_case_id": "greeting_and_capabilities",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Hello, what can you help me with?"
+          }
+        ]
+      }
+    },
+    {
+      "eval_case_id": "generate_lifestyle_image",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Please generate a lifestyle image for product ID 10948 with instructions: Show it on a rustic wooden table."
+          }
+        ]
+      }
+    },
+    {
+      "eval_case_id": "generate_lifestyle_video",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Can you produce a lifestyle video shot for product ID 88492?"
+          }
+        ]
+      }
+    },
+    {
+      "eval_case_id": "batch_generate_images",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Batch generate lifestyle images for the first 2 products in the catalog."
+          }
+        ]
+      }
+    }
+  ]
+}
