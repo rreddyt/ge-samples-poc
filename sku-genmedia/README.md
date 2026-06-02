@@ -89,22 +89,36 @@ agents-cli install
 
 ---
 
-### Step 5: Run locally in ADK Playground
-Start the local ADK playground to interact with the agent visually:
-```bash
-agents-cli playground
-```
+### Step 5: Run and Test the Agent Locally
+
+You have multiple options to interact with and validate the agent locally:
+
+- **Option A: Interactive Web Playground (Recommended)**
+  Start the local ADK playground to chat with your agent visually:
+  ```bash
+  agents-cli playground
+  ```
+
+- **Option B: Run a Single Prompt via CLI (Fast Smoke Test)**
+  Test the agent directly from the terminal without launching the UI:
+  ```bash
+  agents-cli run "Please generate a professional lifestyle image for product ID 12345."
+  ```
+
+- **Option C: Run the Systematic Evaluation Suite**
+  Execute end-to-end evaluations against the project's configured evalsets to verify response quality and tools:
+  ```bash
+  agents-cli eval run --all
+  ```
 
 ---
 
 ### Step 6: Deploy the Agent to Agent Engine (Agent Runtime)
-Once local testing in the playground is complete, deploy your agent directly to the Vertex AI Agent Engine (Agent Runtime):
-```bash
-# 1. Set your active GCP project ID
-gcloud config set project <your-project-id>
+Once local testing is complete, deploy your agent directly to the Agent Platform Runtime (Agent Engine). The target and execution details are automatically detected from `agents-cli-manifest.yaml`:
 
-# 2. Deploy the agent to Agent Runtime
-agents-cli deploy --deployment-target agent_runtime --region=us-central1
+```bash
+# Deploy the agent to Agent Runtime
+agents-cli deploy --project <your-project-id> --region=us-central1
 ```
 Upon successful completion, `agents-cli` will print the deployed **Reasoning Engine resource path** (e.g., `projects/<your-project-id>/locations/us-central1/reasoningEngines/<engine-id>`) and automatically write it to the local `deployment_metadata.json` file.
 
