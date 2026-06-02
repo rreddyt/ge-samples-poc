@@ -1,13 +1,12 @@
 name: sku-genmedia
-description: ReAct agent with A2A protocol and Agent Runtime support
-base_template: adk_a2a
+description: ReAct agent with Agent Runtime support
+base_template: adk
 agent_directory: app
 generated_at: '2026-05-28T18:29:51.099473+00:00'
 acli_version: 0.3.0
 create_params:
-  deployment_target: cloud_run
+  deployment_target: agent_runtime
   session_type: in_memory
   cicd_runner: skip
   include_data_ingestion: false
-  is_a2a: true
   datastore: none

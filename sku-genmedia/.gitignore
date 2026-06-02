@@ -202,3 +202,7 @@ tools/a2a-inspector/
 # Deployment Metadata
 deployment_metadata.json
 
+# ADK local sessions
+**/.adk/
+
+
