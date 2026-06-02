@@ -111,6 +111,34 @@ You have multiple options to interact with and validate the agent locally:
   agents-cli eval run --all
   ```
 
+### Step 5.5: Configure Service Account Permissions (IAM)
+When deployed to Vertex AI Agent Runtime (Agent Engine), the agent runs under the Vertex AI Custom Code Service Agent:
+`service-<gcp-project-number>@gcp-sa-aiplatform-re.iam.gserviceaccount.com`
+
+This service account must have appropriate permissions to query your BigQuery datasets and write generated marketing assets (images and videos) to your Cloud Storage bucket.
+
+Run the following `gcloud` commands to apply these required role bindings (replace `<gcp-project-id>` with your GCP project ID, and `<gcp-project-number>` with your project number):
+
+```bash
+# 1. Grant BigQuery Job User (to run query jobs)
+gcloud projects add-iam-policy-binding <gcp-project-id> \
+    --member="serviceAccount:service-<gcp-project-number>@gcp-sa-aiplatform-re.iam.gserviceaccount.com" \
+    --role="roles/bigquery.jobUser" \
+    --condition=None
+
+# 2. Grant BigQuery Data Viewer (to read the catalog table)
+gcloud projects add-iam-policy-binding <gcp-project-id> \
+    --member="serviceAccount:service-<gcp-project-number>@gcp-sa-aiplatform-re.iam.gserviceaccount.com" \
+    --role="roles/bigquery.dataViewer" \
+    --condition=None
+
+# 3. Grant Storage Object Admin (to upload generated images and videos)
+gcloud projects add-iam-policy-binding <gcp-project-id> \
+    --member="serviceAccount:service-<gcp-project-number>@gcp-sa-aiplatform-re.iam.gserviceaccount.com" \
+    --role="roles/storage.objectAdmin" \
+    --condition=None
+```
+
 ---
 
 ### Step 6: Deploy the Agent to Agent Engine (Agent Runtime)
