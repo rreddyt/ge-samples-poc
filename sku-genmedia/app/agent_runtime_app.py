@@ -114,6 +114,12 @@ class AgentEngineApp(A2aAgent):
     @staticmethod
     async def build_agent_card(app: App) -> AgentCard:
         """Builds the Agent Card dynamically from the app."""
+        app_url = os.getenv("APP_URL")
+        if app_url:
+            rpc_url = f"{app_url.rstrip('/')}/a2a/app"
+        else:
+            rpc_url = "http://localhost:9999/"
+
         agent_card_builder = AgentCardBuilder(
             agent=app.root_agent,
             # Agent Runtime does not support streaming yet
@@ -126,7 +132,7 @@ class AgentEngineApp(A2aAgent):
                     ),
                 ],
             ),
-            rpc_url="http://localhost:9999/",
+            rpc_url=rpc_url,
             agent_version=os.getenv("AGENT_VERSION", "0.1.0"),
         )
         agent_card = await agent_card_builder.build()

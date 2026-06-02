@@ -1,0 +1,14 @@
+# Ignore local virtual environment
+.venv/
+__pycache__/
+*.pyc
+
+# Ignore local lockfile to avoid internal mirror URL issues
+uv.lock
+
+# Ignore local configs and session DBs
+.env
+deployment_metadata.json
+.google-agents-cli/
+.adk/
+app/.adk/

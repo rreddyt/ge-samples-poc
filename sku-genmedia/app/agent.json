@@ -1,0 +1,116 @@
+{
+  "additionalInterfaces": null,
+  "capabilities": {
+    "extensions": [
+      {
+        "description": "Ability to use the new agent executor implementation",
+        "params": null,
+        "required": null,
+        "uri": "https://google.github.io/adk-docs/a2a/a2a-extension/"
+      }
+    ],
+    "pushNotifications": null,
+    "stateTransitionHistory": null,
+    "streaming": false
+  },
+  "defaultInputModes": [
+    "text/plain"
+  ],
+  "defaultOutputModes": [
+    "text/plain"
+  ],
+  "description": "An ADK Agent",
+  "documentationUrl": null,
+  "iconUrl": null,
+  "name": "media_director_agent",
+  "preferredTransport": "HTTP+JSON",
+  "protocolVersion": "0.3.0",
+  "provider": null,
+  "security": null,
+  "securitySchemes": null,
+  "signatures": null,
+  "skills": [
+    {
+      "description": "I am the elite AI Marketing Director and Orchestrator.\n    I have two specialized sub-agents at my command:\n    1. `image_generation_agent` (specialist for creating lifestyle images using gemini-3.1-flash-image).\n    2. `video_generation_agent` (specialist for creating lifestyle videos using veo-3.1-fast-generate-001).\n    \n    I also have direct access to the catalog search tool `get_product_details`.\n\n    How to delegate and process user requests:\n    \n    1. **Fetch Product Catalog Info**:\n       - To query catalog details, call `get_product_details` with the product ID or limit.\n       \n    2. **Generate Lifestyle Image**:\n       - Delegate the task to the `image_generation_agent` with the `product_id` and any styling preferences as `additional_instructions`.\n       \n    3. **Generate Lifestyle Video**:\n       - Delegate the task to the `video_generation_agent` with the `product_id` and any camera/movement preferences as `additional_instructions`.\n       \n    4. **Batch Image Generation**:\n       - First, call `get_product_details` with the specified `limit` (default 5).\n       - For each product record returned, delegate the image generation task to the `image_generation_agent`.\n       \n    Always present a premium, professional, executive-level summary of all the generated content along with their Cloud Storage GCS URIs (gs://...).",
+      "examples": [],
+      "id": "media_director_agent",
+      "inputModes": null,
+      "name": "model",
+      "outputModes": null,
+      "security": null,
+      "tags": [
+        "llm"
+      ]
+    },
+    {
+      "description": "Queries the BigQuery catalog to retrieve product information.\n\nArgs:\n    product_id: The unique integer product ID (optional). If specified, retrieves details for only this product.\n    limit: The maximum number of products to retrieve if product_id is not specified (default 5).\n\nReturns:\n    A JSON-formatted string containing a list of product records, or an error message.",
+      "examples": null,
+      "id": "media_director_agent-get_product_details",
+      "inputModes": null,
+      "name": "get_product_details",
+      "outputModes": null,
+      "security": null,
+      "tags": [
+        "llm",
+        "tools"
+      ]
+    },
+    {
+      "description": "I am a specialized AI creative specialist dedicated to generating premium lifestyle photography.\n    my goal is to generate high-quality lifestyle photos using the **gemini-3.1-flash-image** model.\n    \n    To fulfill requests:\n    1. Call the `generate_and_save_lifestyle_image` tool, passing the exact `product_id`.\n    2. If provided, include custom aesthetic, setting, or lighting directions as `additional_instructions`.\n    3. Return the resulting GCS path and details back to the director.",
+      "examples": [],
+      "id": "image_generation_agent_image_generation_agent",
+      "inputModes": null,
+      "name": "image_generation_agent: model",
+      "outputModes": null,
+      "security": null,
+      "tags": [
+        "sub_agent:image_generation_agent",
+        "llm"
+      ]
+    },
+    {
+      "description": "Generates a high-quality professional lifestyle photography image for a given product ID and saves it to Cloud Storage.\n\nArgs:\n    product_id: The unique integer product ID.\n    additional_instructions: Optional stylistic directions or details to append to the creative prompt.\n\nReturns:\n    A success message containing the GCS path where the image is stored, or a detailed error message.",
+      "examples": null,
+      "id": "image_generation_agent_image_generation_agent-generate_and_save_lifestyle_image",
+      "inputModes": null,
+      "name": "image_generation_agent: generate_and_save_lifestyle_image",
+      "outputModes": null,
+      "security": null,
+      "tags": [
+        "sub_agent:image_generation_agent",
+        "llm",
+        "tools"
+      ]
+    },
+    {
+      "description": "I am a specialized AI video director dedicated to producing high-definition lifestyle content.\n    my goal is to produce premium 8-second videos using the **veo-3.1-fast-generate-001** model.\n    \n    To fulfill requests:\n    1. Call the `generate_and_save_lifestyle_video` tool, passing the exact `product_id`.\n    2. If provided, include custom camera movement or setting directions as `additional_instructions`.\n    3. Return the resulting GCS path and details back to the director.",
+      "examples": [],
+      "id": "video_generation_agent_video_generation_agent",
+      "inputModes": null,
+      "name": "video_generation_agent: model",
+      "outputModes": null,
+      "security": null,
+      "tags": [
+        "sub_agent:video_generation_agent",
+        "llm"
+      ]
+    },
+    {
+      "description": "Generates a high-quality professional 8-second lifestyle video shot for a given product ID and saves it to Cloud Storage.\n\nArgs:\n    product_id: The unique integer product ID.\n    additional_instructions: Optional stylistic directions or camera movement details to append to the creative prompt.\n\nReturns:\n    A success message containing the GCS path where the video is stored, or a detailed error message.",
+      "examples": null,
+      "id": "video_generation_agent_video_generation_agent-generate_and_save_lifestyle_video",
+      "inputModes": null,
+      "name": "video_generation_agent: generate_and_save_lifestyle_video",
+      "outputModes": null,
+      "security": null,
+      "tags": [
+        "sub_agent:video_generation_agent",
+        "llm",
+        "tools"
+      ]
+    }
+  ],
+  "supportsAuthenticatedExtendedCard": true,
+  "url": "https://sku-genmedia-641376439270.us-central1.run.app/a2a/app",
+  "version": "0.1.0"
+}
