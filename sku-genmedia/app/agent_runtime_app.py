@@ -39,6 +39,35 @@ load_dotenv()
 
 
 class AgentEngineApp(A2aAgent):
+    @property
+    def agent_card(self) -> Any:
+        """Dynamic property to handle protobuf serialization compatibility.
+
+        Vertex AI Agent Engine introspector tries to serialize the `agent_card` attribute
+        using `google.protobuf.json_format.MessageToJson`, which expects a Protobuf Message.
+        Since the A2A SDK uses Pydantic models for `AgentCard`, this property dynamically
+        returns a Protobuf `Struct` representation when accessed by the protobuf serializer
+        or the Vertex AI deploy tools, and the standard Pydantic model in all other contexts.
+        """
+        import inspect
+        try:
+            frame = inspect.currentframe()
+            while frame:
+                filename = frame.f_code.co_filename
+                if filename and ("json_format" in filename or "_agent_engines_utils" in filename):
+                    from google.protobuf.struct_pb2 import Struct
+                    struct_msg = Struct()
+                    struct_msg.update(self._real_agent_card.model_dump(mode="json"))
+                    return struct_msg
+                frame = frame.f_back
+        except Exception:
+            pass
+        return getattr(self, "_real_agent_card", None)
+
+    @agent_card.setter
+    def agent_card(self, value: Any) -> None:
+        self._real_agent_card = value
+
     @staticmethod
     def create(
         app: App | None = None,
