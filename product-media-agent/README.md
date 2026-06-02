@@ -31,6 +31,17 @@ Ensure you have installed the following:
 
 ## Quick Start & Deployment
 
+### Step 0: Enable Required Google Cloud Service APIs
+Before you begin, ensure you have enabled the required APIs inside your Google Cloud project. You can do this via the Google Cloud Console or using the Google Cloud SDK CLI:
+
+```bash
+gcloud services enable aiplatform.googleapis.com \
+                       bigquery.googleapis.com \
+                       storage-api.googleapis.com \
+                       storage-component.googleapis.com \
+                       cloudresourcemanager.googleapis.com
+```
+
 ### Step 1: Authenticate to GCP
 Login to your Google Cloud account and set up application default credentials:
 ```bash

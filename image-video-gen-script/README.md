@@ -32,7 +32,16 @@ A premium Python script that utilizes the latest **Google Gemini Multimodal APIs
 
 ## Installation & Setup
 
-Follow these steps to set up and run the script inside a Python virtual environment:
+### 0. Enable Required Google Cloud Service APIs
+Before you begin, ensure you have enabled the required APIs inside your Google Cloud project:
+
+```bash
+gcloud services enable aiplatform.googleapis.com \
+                       bigquery.googleapis.com \
+                       storage-api.googleapis.com \
+                       storage-component.googleapis.com \
+                       cloudresourcemanager.googleapis.com
+```
 
 ### 1. Create a Virtual Environment
 Create a clean virtual environment named `.venv` to isolate the dependencies:
