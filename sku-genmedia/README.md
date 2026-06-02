@@ -141,10 +141,10 @@ agents-cli publish gemini-enterprise --interactive
 If registering programmatically or in a pipeline, provide the Gemini Enterprise App ID directly:
 ```bash
 agents-cli publish gemini-enterprise \
-  --registration-type a2a \
+  --registration-type adk \
   --gemini-enterprise-app-id "projects/<your-project-id>/locations/global/collections/default_collection/engines/<your-app-id>"
 ```
-*Note: Because `deployment_metadata.json` is generated at deploy time, `agents-cli` will automatically auto-detect your active Agent Runtime ID and register it using the Agent-to-Agent (A2A) protocol.*
+*Note: Because `deployment_metadata.json` is generated at deploy time, `agents-cli` will automatically auto-detect your active Agent Runtime ID and register it using the standard ADK protocol.*
 
 ---
 
