@@ -56,9 +56,22 @@ gcs_bucket = os.environ.get("GCS_BUCKET", "at_home_product_lifestyle_content")
 bq_client = bigquery.Client(project=project_id, location="us-central1")
 storage_client = storage.Client(project=project_id)
 
-# ---------------------------------------------------------
-# Helper Functions
-# ---------------------------------------------------------
+def _get_gcs_url(bucket_name: str, blob_name: str) -> str:
+    """Generates a signed URL or falls back to authenticated browser URL."""
+    try:
+        from datetime import timedelta
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob(blob_name)
+        # Generate signed URL (valid for 24 hours)
+        signed_url = blob.generate_signed_url(
+            version="v4",
+            expiration=timedelta(hours=24),
+            method="GET"
+        )
+        return signed_url
+    except Exception as e:
+        print(f"Failed to generate signed URL: {e}. Falling back to authenticated browser URL.")
+        return f"https://storage.cloud.google.com/{bucket_name}/{blob_name}"
 
 def _fetch_bq_rows(product_id: int = None, total_rows: int = 5) -> list:
     """Private helper to query BigQuery catalog."""
@@ -174,12 +187,12 @@ def generate_and_save_lifestyle_image(product_id: int, additional_instructions: 
         additional_instructions: Optional stylistic directions or details to append to the creative prompt.
 
     Returns:
-        A success message containing the GCS path where the image is stored, or a detailed error message.
+        A JSON-formatted string containing success status, the GCS path, and authenticated HTTPS link, or a detailed error message.
     """
     try:
         rows = _fetch_bq_rows(product_id=product_id)
         if not rows:
-            return f"Error: Product ID {product_id} not found in BigQuery catalog."
+            return json.dumps({"status": "error", "message": f"Product ID {product_id} not found in BigQuery catalog."})
         
         row = rows[0]
         product_name = row["product-name"] or ""
@@ -201,7 +214,7 @@ def generate_and_save_lifestyle_image(product_id: int, additional_instructions: 
                 print(f"Error parsing cloudinaryProductImages: {e}")
                 
         if not image_url:
-            return f"Error: No valid reference image URL found for product ID {product_id}."
+            return json.dumps({"status": "error", "message": f"No valid reference image URL found for product ID {product_id}."})
         
         # Download reference image
         img_response = requests.get(image_url)
@@ -279,7 +292,7 @@ def generate_and_save_lifestyle_image(product_id: int, additional_instructions: 
                         image_bytes += part.inline_data.data
                         
         if not image_bytes:
-            return f"Error: Gemini API returned empty image bytes for product ID {product_id}."
+            return json.dumps({"status": "error", "message": f"Gemini API returned empty image bytes for product ID {product_id}."})
             
         # Save to GCS
         now = datetime.now()
@@ -296,12 +309,20 @@ def generate_and_save_lifestyle_image(product_id: int, additional_instructions: 
         )
         
         if success:
-            return f"Success: Generated lifestyle image and uploaded to gs://{gcs_bucket}/{destination_blob}"
+            gcs_uri = f"gs://{gcs_bucket}/{destination_blob}"
+            http_url = _get_gcs_url(gcs_bucket, destination_blob)
+            return json.dumps({
+                "status": "success",
+                "gcs_uri": gcs_uri,
+                "authenticated_url": http_url,
+                "media_type": "image",
+                "product_id": product_id
+            }, indent=2)
         else:
-            return "Error: Failed to upload the generated image to Cloud Storage."
+            return json.dumps({"status": "error", "message": "Failed to upload the generated image to Cloud Storage."})
             
     except Exception as e:
-        return f"Error generating lifestyle image for product {product_id}: {str(e)}"
+        return json.dumps({"status": "error", "message": f"Error generating lifestyle image for product {product_id}: {str(e)}"})
 
 
 def generate_and_save_lifestyle_video(product_id: int, additional_instructions: str = "") -> str:
@@ -312,12 +333,12 @@ def generate_and_save_lifestyle_video(product_id: int, additional_instructions: 
         additional_instructions: Optional stylistic directions or camera movement details to append to the creative prompt.
 
     Returns:
-        A success message containing the GCS path where the video is stored, or a detailed error message.
+        A JSON-formatted string containing success status, the GCS path, and authenticated HTTPS link, or a detailed error message.
     """
     try:
         rows = _fetch_bq_rows(product_id=product_id)
         if not rows:
-            return f"Error: Product ID {product_id} not found in BigQuery catalog."
+            return json.dumps({"status": "error", "message": f"Product ID {product_id} not found in BigQuery catalog."})
         
         row = rows[0]
         product_name = row["product-name"] or ""
@@ -339,7 +360,7 @@ def generate_and_save_lifestyle_video(product_id: int, additional_instructions: 
                 print(f"Error parsing cloudinaryProductImages: {e}")
                 
         if not image_url:
-            return f"Error: No valid reference image URL found for product ID {product_id}."
+            return json.dumps({"status": "error", "message": f"No valid reference image URL found for product ID {product_id}."})
         
         # Download reference image
         img_response = requests.get(image_url)
@@ -399,7 +420,7 @@ def generate_and_save_lifestyle_video(product_id: int, additional_instructions: 
             err_msg = ""
             if hasattr(operation, 'error') and operation.error:
                 err_msg = f" Operation error: {operation.error}"
-            return f"Error: Veo model returned no generated videos.{err_msg}"
+            return json.dumps({"status": "error", "message": f"Veo model returned no generated videos.{err_msg}"})
             
         generated_video = operation.response.generated_videos[0]
         video_bytes = generated_video.video.video_bytes
@@ -417,11 +438,11 @@ def generate_and_save_lifestyle_video(product_id: int, additional_instructions: 
                     src_blob = src_bucket.blob(src_blob_name)
                     video_bytes = src_blob.download_as_bytes()
                 except Exception as e:
-                    return f"Error: Failed to download video bytes from generated source bucket. Details: {str(e)}"
+                    return json.dumps({"status": "error", "message": f"Failed to download video bytes from generated source bucket. Details: {str(e)}"})
             else:
-                return f"Error: Unexpected video URI format: {gcs_uri}"
+                return json.dumps({"status": "error", "message": f"Unexpected video URI format: {gcs_uri}"})
         elif not video_bytes:
-            return "Error: No video bytes or GCS URI returned in Veo model response."
+            return json.dumps({"status": "error", "message": "No video bytes or GCS URI returned in Veo model response."})
             
         # Save to GCS
         now = datetime.now()
@@ -438,9 +459,17 @@ def generate_and_save_lifestyle_video(product_id: int, additional_instructions: 
         )
         
         if success:
-            return f"Success: Generated lifestyle video and uploaded to gs://{gcs_bucket}/{destination_blob}"
+            gcs_uri = f"gs://{gcs_bucket}/{destination_blob}"
+            http_url = _get_gcs_url(gcs_bucket, destination_blob)
+            return json.dumps({
+                "status": "success",
+                "gcs_uri": gcs_uri,
+                "authenticated_url": http_url,
+                "media_type": "video",
+                "product_id": product_id
+            }, indent=2)
         else:
-            return "Error: Failed to upload the generated video to Cloud Storage."
+            return json.dumps({"status": "error", "message": "Failed to upload the generated video to Cloud Storage."})
             
     except Exception as e:
-        return f"Error generating lifestyle video for product {product_id}: {str(e)}"
+        return json.dumps({"status": "error", "message": f"Error generating lifestyle video for product {product_id}: {str(e)}"})

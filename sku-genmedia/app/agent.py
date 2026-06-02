@@ -35,7 +35,7 @@ image_generation_agent = Agent(
     To fulfill requests:
     1. Call the `generate_and_save_lifestyle_image` tool, passing the exact `product_id`.
     2. If provided, include custom aesthetic, setting, or lighting directions as `additional_instructions`.
-    3. Return the resulting GCS path and details back to the director.""",
+    3. The tool will return a JSON string containing `status`, `gcs_uri`, `authenticated_url`, and `media_type`. Parse this JSON and return the GCS path, authenticated URL, and product details back to the director.""",
     tools=[generate_and_save_lifestyle_image],
 )
 
@@ -49,7 +49,7 @@ video_generation_agent = Agent(
     To fulfill requests:
     1. Call the `generate_and_save_lifestyle_video` tool, passing the exact `product_id`.
     2. If provided, include custom camera movement or setting directions as `additional_instructions`.
-    3. Return the resulting GCS path and details back to the director.""",
+    3. The tool will return a JSON string containing `status`, `gcs_uri`, `authenticated_url`, and `media_type`. Parse this JSON and return the GCS path, authenticated URL, and product details back to the director.""",
     tools=[generate_and_save_lifestyle_video],
 )
 
@@ -74,15 +74,29 @@ media_director_agent = Agent(
        
     2. **Generate Lifestyle Image**:
        - Delegate the task to the `image_generation_agent` with the `product_id` and any styling preferences as `additional_instructions`.
+       - When the sub-agent returns the result, present a premium summary including:
+         - GCS URI: `gs://...`
+         - Clickable Authenticated Link: `[View Authenticated Image](authenticated_url)`
+         - **The image itself**: Embed the image inline using Markdown: `![Lifestyle Image for Product ID](authenticated_url)`
        
     3. **Generate Lifestyle Video**:
        - Delegate the task to the `video_generation_agent` with the `product_id` and any camera/movement preferences as `additional_instructions`.
+       - When the sub-agent returns the result, present a premium summary including:
+         - GCS URI: `gs://...`
+         - Clickable Authenticated Link: `[View Authenticated Video](authenticated_url)`
+         - **The video itself**: Embed the video inline using standard HTML5 video tag: `<video src="authenticated_url" controls width="100%"></video>`
        
-    4. **Batch Image Generation**:
-       - First, call `get_product_details` with the specified `limit` (default 5).
+    4. **Batch Image Generation (for first N products in BigQuery)**:
+       - First, call `get_product_details` with the specified `limit` (default 5) to fetch the first N products in the BigQuery table.
        - For each product record returned, delegate the image generation task to the `image_generation_agent`.
+       - Once all images are generated, present a professional, executive-level summary of the run.
+       - **MANDATORY**: Include a structured list of all the authenticated URLs and GCS URIs for each product:
+         * E.g., **Product ID [ID] ([Name])**:
+           - GCS Path: `gs://...`
+           - Authenticated HTTPS Link: `[View Authenticated Image](authenticated_url)`
+           - Image: `![Product ID](authenticated_url)`
        
-    Always present a premium, professional, executive-level summary of all the generated content along with their Cloud Storage GCS URIs (gs://...).""",
+    Always maintain a premium, professional tone and ensure all authenticated links and embedded assets are rendered beautifully in your final response.""",
     sub_agents=[
         image_generation_agent,
         video_generation_agent,
