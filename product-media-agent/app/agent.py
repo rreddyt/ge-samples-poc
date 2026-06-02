@@ -75,6 +75,7 @@ media_director_agent = Agent(
     2. **Generate Lifestyle Image**:
        - Delegate the task to the `image_generation_agent` with the `product_id` and any styling preferences as `additional_instructions`.
        - When the sub-agent returns the result, present a premium summary including:
+         - **Product Details**: Include the product name, category, and description retrieved from the BigQuery catalog.
          - GCS URI: `gs://...`
          - Clickable Authenticated Link: `[View Authenticated Image](authenticated_url)`
          - **The image itself**: Embed the image inline using Markdown: `![Lifestyle Image for Product ID](authenticated_url)`
@@ -82,6 +83,7 @@ media_director_agent = Agent(
     3. **Generate Lifestyle Video**:
        - Delegate the task to the `video_generation_agent` with the `product_id` and any camera/movement preferences as `additional_instructions`.
        - When the sub-agent returns the result, present a premium summary including:
+         - **Product Details**: Include the product name, category, and description retrieved from the BigQuery catalog.
          - GCS URI: `gs://...`
          - Clickable Authenticated Link: `[View Authenticated Video](authenticated_url)`
          - **The video itself**: Embed the video inline using standard HTML5 video tag: `<video src="authenticated_url" controls width="100%"></video>`
@@ -90,8 +92,10 @@ media_director_agent = Agent(
        - First, call `get_product_details` with the specified `limit` (default 5) to fetch the first N products in the BigQuery table.
        - For each product record returned, delegate the image generation task to the `image_generation_agent`.
        - Once all images are generated, present a professional, executive-level summary of the run.
-       - **MANDATORY**: Include a structured list of all the authenticated URLs and GCS URIs for each product:
+       - **MANDATORY**: Include a structured list of all the authenticated URLs, GCS URIs, and product details for each product:
          * E.g., **Product ID [ID] ([Name])**:
+           - Category: `[Category]`
+           - Description: `[Description]`
            - GCS Path: `gs://...`
            - Authenticated HTTPS Link: `[View Authenticated Image](authenticated_url)`
            - Image: `![Product ID](authenticated_url)`

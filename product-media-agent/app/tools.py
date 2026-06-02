@@ -316,7 +316,12 @@ def generate_and_save_lifestyle_image(product_id: int, additional_instructions: 
                 "gcs_uri": gcs_uri,
                 "authenticated_url": http_url,
                 "media_type": "image",
-                "product_id": product_id
+                "product_id": product_id,
+                "product_details": {
+                    "product_name": product_name,
+                    "primary_category": primary_category,
+                    "long_description": clean_desc
+                }
             }, indent=2)
         else:
             return json.dumps({"status": "error", "message": "Failed to upload the generated image to Cloud Storage."})
@@ -466,7 +471,12 @@ def generate_and_save_lifestyle_video(product_id: int, additional_instructions: 
                 "gcs_uri": gcs_uri,
                 "authenticated_url": http_url,
                 "media_type": "video",
-                "product_id": product_id
+                "product_id": product_id,
+                "product_details": {
+                    "product_name": product_name,
+                    "primary_category": primary_category,
+                    "long_description": clean_desc
+                }
             }, indent=2)
         else:
             return json.dumps({"status": "error", "message": "Failed to upload the generated video to Cloud Storage."})
