@@ -54,7 +54,13 @@ class AgentEngineApp(A2aAgent):
             frame = inspect.currentframe()
             while frame:
                 filename = frame.f_code.co_filename
-                if filename and ("json_format" in filename or "_agent_engines_utils" in filename):
+                func_name = frame.f_code.co_name
+                if filename and "json_format" in filename:
+                    from google.protobuf.struct_pb2 import Struct
+                    struct_msg = Struct()
+                    struct_msg.update(self._real_agent_card.model_dump(mode="json"))
+                    return struct_msg
+                if filename and "_agent_engines_utils" in filename and func_name == "_generate_class_methods_spec_or_raise":
                     from google.protobuf.struct_pb2 import Struct
                     struct_msg = Struct()
                     struct_msg.update(self._real_agent_card.model_dump(mode="json"))
