@@ -73,17 +73,17 @@ def _get_gcs_url(bucket_name: str, blob_name: str) -> str:
         print(f"Failed to generate signed URL: {e}. Falling back to authenticated browser URL.")
         return f"https://storage.cloud.google.com/{bucket_name}/{blob_name}"
 
-def _fetch_bq_rows(product_id: int = None, total_rows: int = 5) -> list:
+def _fetch_bq_rows(product_id: str = None, total_rows: int = 5) -> list:
     """Private helper to query BigQuery catalog."""
     if product_id:
         query = f"""
-            SELECT `product-id`, `product-name`, primaryCategoryName, `long-description`, cloudinaryProductImages
+            SELECT `product-id`, `product-name`, primaryCategoryName, `short-description`, cloudinaryProductImages
             FROM `{project_id}.{bq_dataset}.{bq_table}`
-            WHERE `product-id` = {product_id}
+            WHERE `product-id` = '{product_id}'
         """
     else:
         query = f"""
-            SELECT `product-id`, `product-name`, primaryCategoryName, `long-description`, cloudinaryProductImages
+            SELECT `product-id`, `product-name`, primaryCategoryName, `short-description`, cloudinaryProductImages
             FROM `{project_id}.{bq_dataset}.{bq_table}`
             LIMIT {total_rows}
         """
@@ -148,11 +148,11 @@ def _upload_to_gcs(bucket_name: str, destination_blob_name: str, data_bytes: byt
 # Exposed Agent Tools
 # ---------------------------------------------------------
 
-def get_product_details(product_id: int = None, limit: int = 5) -> str:
+def get_product_details(product_id: str = None, limit: int = 5) -> str:
     """Queries the BigQuery catalog to retrieve product information.
 
     Args:
-        product_id: The unique integer product ID (optional). If specified, retrieves details for only this product.
+        product_id: The unique string product ID (optional). If specified, retrieves details for only this product.
         limit: The maximum number of products to retrieve if product_id is not specified (default 5).
 
     Returns:
@@ -170,7 +170,7 @@ def get_product_details(product_id: int = None, limit: int = 5) -> str:
                 "product_id": row["product-id"],
                 "product_name": row["product-name"] or "",
                 "primary_category": row["primaryCategoryName"] or "",
-                "long_description": row["long-description"] or "",
+                "short_description": row["short-description"] or "",
                 "cloudinary_images": row["cloudinaryProductImages"] or ""
             })
             
@@ -179,11 +179,11 @@ def get_product_details(product_id: int = None, limit: int = 5) -> str:
         return json.dumps({"status": "error", "message": f"Failed to query catalog. Error: {str(e)}"})
 
 
-def generate_and_save_lifestyle_image(product_id: int, additional_instructions: str = "") -> str:
+def generate_and_save_lifestyle_image(product_id: str, additional_instructions: str = "") -> str:
     """Generates a high-quality professional lifestyle photography image for a given product ID and saves it to Cloud Storage.
 
     Args:
-        product_id: The unique integer product ID.
+        product_id: The unique string product ID.
         additional_instructions: Optional stylistic directions or details to append to the creative prompt.
 
     Returns:
@@ -197,10 +197,10 @@ def generate_and_save_lifestyle_image(product_id: int, additional_instructions: 
         row = rows[0]
         product_name = row["product-name"] or ""
         primary_category = row["primaryCategoryName"] or ""
-        long_desc = row["long-description"] or ""
+        short_desc = row["short-description"] or ""
         
         # Clean description from HTML tags
-        clean_desc = re.sub('<[^<]+?>', ' ', long_desc)
+        clean_desc = re.sub('<[^<]+?>', ' ', short_desc)
         clean_desc = " ".join(clean_desc.split())
         
         # Parse reference image URL from cloudinaryProductImages
@@ -320,7 +320,7 @@ def generate_and_save_lifestyle_image(product_id: int, additional_instructions: 
                 "product_details": {
                     "product_name": product_name,
                     "primary_category": primary_category,
-                    "long_description": clean_desc
+                    "short_description": clean_desc
                 }
             }, indent=2)
         else:
@@ -330,11 +330,11 @@ def generate_and_save_lifestyle_image(product_id: int, additional_instructions: 
         return json.dumps({"status": "error", "message": f"Error generating lifestyle image for product {product_id}: {str(e)}"})
 
 
-def generate_and_save_lifestyle_video(product_id: int, additional_instructions: str = "") -> str:
+def generate_and_save_lifestyle_video(product_id: str, additional_instructions: str = "") -> str:
     """Generates a high-quality professional 8-second lifestyle video shot for a given product ID and saves it to Cloud Storage.
 
     Args:
-        product_id: The unique integer product ID.
+        product_id: The unique string product ID.
         additional_instructions: Optional stylistic directions or camera movement details to append to the creative prompt.
 
     Returns:
@@ -348,10 +348,10 @@ def generate_and_save_lifestyle_video(product_id: int, additional_instructions: 
         row = rows[0]
         product_name = row["product-name"] or ""
         primary_category = row["primaryCategoryName"] or ""
-        long_desc = row["long-description"] or ""
+        short_desc = row["short-description"] or ""
         
         # Clean description
-        clean_desc = re.sub('<[^<]+?>', ' ', long_desc)
+        clean_desc = re.sub('<[^<]+?>', ' ', short_desc)
         clean_desc = " ".join(clean_desc.split())
         
         # Parse reference image URL from cloudinaryProductImages
@@ -475,7 +475,7 @@ def generate_and_save_lifestyle_video(product_id: int, additional_instructions: 
                 "product_details": {
                     "product_name": product_name,
                     "primary_category": primary_category,
-                    "long_description": clean_desc
+                    "short_description": clean_desc
                 }
             }, indent=2)
         else:
