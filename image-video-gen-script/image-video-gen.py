@@ -44,14 +44,14 @@ def get_bq_rows(project_id: str, dataset: str, table: str, product_id: str = Non
         prod_id_str = product_id.strip()
         print(f"Querying BigQuery table for single product ID '{prod_id_str}'...")
         query = f"""
-            SELECT `product-id`, `product-name`, primaryCategoryName, `long-description`, cloudinaryProductImages
+            SELECT `product-id`, `product-name`, primaryCategoryName, `short-description`, cloudinaryProductImages
             FROM `{project_id}.{dataset}.{table}`
-            WHERE CAST(`product-id` AS STRING) = '{prod_id_str}'
+            WHERE `product-id` = '{prod_id_str}'
         """
     else:
         print(f"Querying BigQuery table for first {total_rows} products...")
         query = f"""
-            SELECT `product-id`, `product-name`, primaryCategoryName, `long-description`, cloudinaryProductImages
+            SELECT `product-id`, `product-name`, primaryCategoryName, `short-description`, cloudinaryProductImages
             FROM `{project_id}.{dataset}.{table}`
             LIMIT {total_rows}
         """
@@ -287,15 +287,15 @@ if __name__ == "__main__":
         product_id = row["product-id"]
         product_name = row["product-name"] or ""
         primary_category = row["primaryCategoryName"] or ""
-        long_desc = row["long-description"]
+        short_desc = row["short-description"]
         
         print(f"\n--- Processing product {count + 1}/{len(rows)} ---")
         print(f"Product ID: {product_id}")
         print(f"Product Name: {product_name}")
         
         # Clean description
-        if long_desc:
-            clean_desc = re.sub('<[^<]+?>', ' ', long_desc)
+        if short_desc:
+            clean_desc = re.sub('<[^<]+?>', ' ', short_desc)
             clean_desc = " ".join(clean_desc.split())
         else:
             clean_desc = ""
