@@ -27,6 +27,17 @@ Ensure you have installed the following:
 2. **agents-cli**: The standard ADK agent development utility — Install via `uv tool install google-agents-cli`
 3. **Google Cloud SDK**: The `gcloud` command-line interface — [Install Guide](https://cloud.google.com/sdk/docs/install)
 
+### Required Google Cloud IAM Roles
+To execute all steps in this guide (including service API enablement, local testing, service account IAM bindings, and Agent Engine deployment), your developer Google Cloud identity must be granted the following IAM roles on the target GCP project:
+
+1. **Vertex AI Administrator** (`roles/aiplatform.admin`): Required to deploy, update, and manage Vertex AI Reasoning Engine (Agent Runtime) resources.
+2. **BigQuery Data Viewer** (`roles/bigquery.dataViewer`) & **BigQuery Job User** (`roles/bigquery.jobUser`): Required to run query jobs and fetch retail details from your BigQuery tables.
+3. **Storage Object Admin** (`roles/storage.objectAdmin`): Required to create Cloud Storage buckets, read references, and upload/write generated lifestyle images and videos.
+4. **Project IAM Admin** (`roles/resourcemanager.projectIamAdmin`): Required to execute standard IAM policy bindings for the Vertex AI Custom Code service account.
+5. **Service Usage Admin** (`roles/serviceusage.serviceUsageAdmin`): Required to enable the necessary Google Cloud Service APIs in the project.
+
+*Note: Alternatively, possessing the project **Owner** (`roles/owner`) or **Editor** (`roles/editor`) role will grant all of these required permissions.*
+
 ---
 
 ## Quick Start & Deployment
