@@ -41,18 +41,13 @@ def get_bq_rows(project_id: str, dataset: str, table: str, product_id: str = Non
     bq_client = bigquery.Client(project=project_id, location="us-central1")
     
     if product_id:
-        try:
-            # Ensure product_id is a valid integer since schema column is INTEGER
-            prod_id_int = int(product_id.strip())
-            print(f"Querying BigQuery table for single product ID '{prod_id_int}'...")
-            query = f"""
-                SELECT `product-id`, `product-name`, primaryCategoryName, `long-description`, cloudinaryProductImages
-                FROM `{project_id}.{dataset}.{table}`
-                WHERE `product-id` = {prod_id_int}
-            """
-        except ValueError:
-            print(f"Error: PRODUCT_ID '{product_id}' is not a valid integer.")
-            return []
+        prod_id_str = product_id.strip()
+        print(f"Querying BigQuery table for single product ID '{prod_id_str}'...")
+        query = f"""
+            SELECT `product-id`, `product-name`, primaryCategoryName, `long-description`, cloudinaryProductImages
+            FROM `{project_id}.{dataset}.{table}`
+            WHERE CAST(`product-id` AS STRING) = '{prod_id_str}'
+        """
     else:
         print(f"Querying BigQuery table for first {total_rows} products...")
         query = f"""
@@ -224,8 +219,6 @@ if __name__ == "__main__":
             input_val = input("Enter PRODUCT_ID: ").strip()
             if not input_val:
                 print("PRODUCT_ID is required for this mode.")
-            elif not input_val.isdigit():
-                print("PRODUCT_ID must be a valid integer.")
             else:
                 PRODUCT_ID = input_val
         if choice == "1":
