@@ -57,19 +57,47 @@ BQ_TABLE=product_main_catalog
 GCS_BUCKET=at_home_product_lifestyle_content
 ```
 
-### Step 3: Install Dependencies
-Install Python packages using `agents-cli`:
+### Step 3: Create and Activate a Python Virtual Environment
+Before installing dependencies, create and activate a Python virtual environment to isolate the packages:
+
+- **Create the Virtual Environment**:
+  ```bash
+  python3 -m venv .venv
+  ```
+
+- **Activate the Virtual Environment**:
+  - **Linux / macOS**:
+    ```bash
+    source .venv/bin/activate
+    ```
+  - **Windows (Command Prompt)**:
+    ```cmd
+    .venv\Scripts\activate.bat
+    ```
+  - **Windows (PowerShell)**:
+    ```powershell
+    .venv\Scripts\Activate.ps1
+    ```
+
+---
+
+### Step 4: Install Dependencies
+Ensure the virtual environment is active, then install all Python dependencies using `agents-cli`:
 ```bash
 agents-cli install
 ```
 
-### Step 4: Run locally in ADK Playground
+---
+
+### Step 5: Run locally in ADK Playground
 Start the local ADK playground to interact with the agent visually:
 ```bash
 agents-cli playground
 ```
 
-### Step 5: Deploy the Agent to Agent Engine (Agent Runtime)
+---
+
+### Step 6: Deploy the Agent to Agent Engine (Agent Runtime)
 Once local testing in the playground is complete, deploy your agent directly to the Vertex AI Agent Engine (Agent Runtime):
 ```bash
 # 1. Set your active GCP project ID
@@ -82,7 +110,7 @@ Upon successful completion, `agents-cli` will print the deployed **Reasoning Eng
 
 ---
 
-### Step 6: Link/Publish to a Gemini Enterprise App
+### Step 7: Link/Publish to a Gemini Enterprise App
 After the agent is successfully deployed, you can register it under a Gemini Enterprise App to make its capabilities accessible in conversational workflows.
 
 First, make sure you have created a Gemini Enterprise App in the Google Cloud Console under **Gemini Enterprise** -> **Apps**.
