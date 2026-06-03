@@ -109,14 +109,21 @@ Edit the `.env` file and set your configuration parameters to match your Google 
 ```ini
 # GCP Configuration
 GCP_PROJECT_ID=your-gcp-project-id
-GCP_LOCATION=us-central1
+
+# Endpoint regions for Vertex AI models
+GEMINI_LOCATION=global
+VEO_LOCATION=us-central1
 
 # BigQuery Configuration
-BQ_DATASET=at_home_dataset
-BQ_TABLE=product_main_catalog
+BQ_DATASET=your_bq_dataset
+BQ_TABLE=your_product_catalog_table
 
 # Cloud Storage Configuration
-GCS_BUCKET=at_home_product_lifestyle_content
+GCS_BUCKET=you_product_lifestyle_media_content_gcs_bucket
+
+# Workstation mTLS Bypass Configuration (to prevent certificate helper crashes on corporate laptops)
+GOOGLE_API_USE_CLIENT_CERTIFICATE=false
+GOOGLE_API_USE_MTLS_ENDPOINT=never
 ```
 
 ---
