@@ -28,7 +28,7 @@ product-media-agent/
 ### Authenticate to GCP
 From the terminal where you're executing the agent setup, make sure the you've installed the [Google Cloud SDK](https://cloud.google.com/sdk/docs/install), as you'll need the `gcloud` CLI. Then, log into your Google Cloud account and set up application default credentials:
 ```bash
-gcloud auth login
+gcloud init
 gcloud auth application-default login
 ```
 
