@@ -191,11 +191,14 @@ gcloud projects add-iam-policy-binding <gcp-project-id> \
 ---
 
 ### Step 4.b: Deploy the Agent to Agent Engine (Agent Runtime)
-Once local testing is complete, deploy your agent directly to the Agent Platform Runtime (Agent Engine). The target and execution details are automatically detected from `agents-cli-manifest.yaml`:
-
+Once local testing is complete, deploy your agent directly to the Agent Platform Runtime (Agent Engine). The target and execution details are automatically detected from `agents-cli-manifest.yaml`. To ensure that the environment variables from the .env files are included in the deoloyment build, we will include the `--update-env-vars` option with the `agents-cli deploy` command. 
+** Make sure to replace `<YOUR_GCP_PROJECT_ID>`, `<YOUR_BQ_DATASET_NAME>`, `<YOUR_BQ_TABLE_NAME>`, and `<YOUR_GCS_BUCKET_NAME>` in the command below.**
 ```bash
 # Deploy the agent to Agent Runtime
-agents-cli deploy --project <your-project-id> --region=us-central1
+agents-cli deploy \
+  --project <YOUR_GCP_PROJECT_ID> \
+  --region us-central1 \
+  --update-env-vars "GCP_PROJECT_ID=<YOUR_GCP_PROJECT_ID>,GEMINI_LOCATION=global,VEO_LOCATION=us-central1,BQ_DATASET=<YOUR_BQ_DATASET_NAME>,BQ_TABLE=<YOUR_BQ_TABLE_NAME>,GCS_BUCKET=<YOUR_GCS_BUCKET_NAME>"
 ```
 Upon successful completion, `agents-cli` will print the deployed **Reasoning Engine resource path** (e.g., `projects/<your-project-id>/locations/us-central1/reasoningEngines/<engine-id>`) and automatically write it to the local `deployment_metadata.json` file.
 
