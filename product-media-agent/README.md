@@ -1,6 +1,9 @@
 # product-media-agent — Product Lifestyle Media Generation Agent
 
-This project implements a collaborative marketing AI agent using the **Agent Development Kit (ADK)**. The agent processes retail product details inside Google BigQuery and produces high-end marketing lifestyle images (using `gemini-3.1-flash-image`) and high-definition lifestyle videos (using `veo-3.1-fast-generate-001`) stored in Google Cloud Storage (GCS).
+This project implements a collaborative marketing AI agent using the [**Agent Development Kit (ADK)**](https://adk.dev). The agent processes retail product details from a catalog inside Google BigQuery and produces
+* high-end marketing lifestyle images (using `gemini-3.1-flash-image`)
+* high-definition lifestyle videos (using `veo-3.1-fast-generate-001`)
+The generated media is then stored in Google Cloud Storage (GCS).
 
 ---
 
@@ -22,66 +25,22 @@ product-media-agent/
 
 ## Requirements
 
-Ensure you have installed the following:
-1. **uv**: A fast Python package installer and resolver — [Install Guide](https://docs.astral.sh/uv/getting-started/installation/)
-2. **agents-cli**: The standard ADK agent development utility — Install via `uv tool install google-agents-cli`
-3. **Google Cloud SDK**: The `gcloud` command-line interface — [Install Guide](https://cloud.google.com/sdk/docs/install)
-
-### Required Google Cloud IAM Roles
-To execute all steps in this guide (including service API enablement, local testing, service account IAM bindings, and Agent Engine deployment), your developer Google Cloud identity must be granted the following IAM roles on the target GCP project:
-
-1. **Vertex AI Administrator** (`roles/aiplatform.admin`): Required to deploy, update, and manage Vertex AI Reasoning Engine (Agent Runtime) resources.
-2. **BigQuery Data Viewer** (`roles/bigquery.dataViewer`) & **BigQuery Job User** (`roles/bigquery.jobUser`): Required to run query jobs and fetch retail details from your BigQuery tables.
-3. **Storage Object Admin** (`roles/storage.objectAdmin`): Required to create Cloud Storage buckets, read references, and upload/write generated lifestyle images and videos.
-4. **Project IAM Admin** (`roles/resourcemanager.projectIamAdmin`): Required to execute standard IAM policy bindings for the Vertex AI Custom Code service account.
-5. **Service Usage Admin** (`roles/serviceusage.serviceUsageAdmin`): Required to enable the necessary Google Cloud Service APIs in the project.
-
-*Note: Alternatively, possessing the project **Owner** (`roles/owner`) or **Editor** (`roles/editor`) role will grant all of these required permissions.*
-
----
-
-## Quick Start & Deployment
-
-### Step 0: Enable Required Google Cloud Service APIs
-Before you begin, ensure you have enabled the required APIs inside your Google Cloud project. You can do this via the Google Cloud Console or using the Google Cloud SDK CLI:
-
-```bash
-gcloud services enable aiplatform.googleapis.com \
-                       bigquery.googleapis.com \
-                       storage-api.googleapis.com \
-                       storage-component.googleapis.com \
-                       cloudresourcemanager.googleapis.com
-```
-
-### Step 1: Authenticate to GCP
-Login to your Google Cloud account and set up application default credentials:
+### Authenticate to GCP
+From the terminal where you're executing the agent setup, make sure the you've installed the [Google Cloud SDK](https://cloud.google.com/sdk/docs/install), as you'll need the `gcloud` CLI. Then, log into your Google Cloud account and set up application default credentials:
 ```bash
 gcloud auth login
 gcloud auth application-default login
 ```
 
-### Step 2: Configure Environment
-Copy the environment template into a `.env` file:
-```bash
-cp .env.example .env
-```
-Edit the `.env` file and set your configuration parameters to match your Google Cloud environment:
-```ini
-# GCP Configuration
-GCP_PROJECT_ID=your-gcp-project-id
-GCP_LOCATION=us-central1
-
-# BigQuery Configuration
-BQ_DATASET=at_home_dataset
-BQ_TABLE=product_main_catalog
-
-# Cloud Storage Configuration
-GCS_BUCKET=at_home_product_lifestyle_content
-```
-
-### Step 3: Create and Activate a Python Virtual Environment
+### Create and Activate a Python Virtual Environment
 Before installing dependencies, create and activate a Python virtual environment to isolate the packages:
 
+- cd into the product-media-agent project folder
+  ```bash
+  # Execute from within the repo root
+  cd ./product-media-agent
+  ```
+  
 - **Create the Virtual Environment**:
   ```bash
   python3 -m venv .venv
@@ -101,9 +60,70 @@ Before installing dependencies, create and activate a Python virtual environment
     .venv\Scripts\Activate.ps1
     ```
 
+### Required Google Cloud IAM Roles
+To execute all steps in this guide (including service API enablement, local testing, service account IAM bindings, and Agent Engine deployment), your Google Cloud identity must be granted the following IAM roles on the target GCP project:
+
+1. **Vertex AI Administrator** (`roles/aiplatform.admin`): Required to deploy, update, and manage Vertex AI Reasoning Engine (Agent Runtime) resources.
+2. **BigQuery Data Viewer** (`roles/bigquery.dataViewer`) & **BigQuery Job User** (`roles/bigquery.jobUser`): Required to run query jobs and fetch retail details from your BigQuery tables.
+3. **Storage Object Admin** (`roles/storage.objectAdmin`): Required to create Cloud Storage buckets, read references, and upload/write generated lifestyle images and videos.
+4. **Project IAM Admin** (`roles/resourcemanager.projectIamAdmin`): Required to execute standard IAM policy bindings for the Vertex AI Custom Code service account.
+5. **Service Usage Admin** (`roles/serviceusage.serviceUsageAdmin`): Required to enable the necessary Google Cloud Service APIs in the project.
+
+*Note: Alternatively, possessing the project **Owner** (`roles/owner`) or **Editor** (`roles/editor`) role will grant all of these required permissions.*
+
+### Other Tools
+Ensure you have installed the following:
+1. **uv**: A fast Python package installer and resolver — [Install Guide](https://docs.astral.sh/uv/getting-started/installation/)
+2. **agents-cli**: A single utility with the skills and commands to build, scale, govern, and optimize enterprise-grade agents. You can install by executing this in your linux terminal:
+   ```bash
+   uvx google-agents-cli setup
+   ```
+For additional installation options, see [agents-cli docs](https://docs.astral.sh/uv/getting-started/installation)
+
+## Quick Start & Deployment
+
 ---
 
-### Step 4: Install Dependencies
+### Step 0: Enable Required Google Cloud Service APIs
+Before you begin, ensure you have enabled the required APIs inside your Google Cloud project. You can do this via the Google Cloud Console or using the Google Cloud SDK CLI:
+
+```bash
+gcloud services enable aiplatform.googleapis.com \
+                       bigquery.googleapis.com \
+                       storage-api.googleapis.com \
+                       storage-component.googleapis.com \
+                       cloudresourcemanager.googleapis.com
+```
+
+---
+
+### Step 1: Configure Environment
+Make sure you've navigated into the product-media-agent project folder
+```bash
+# Execute from within the repo root
+cd ./product-media-agent
+```
+Copy the environment template into a `.env` file:
+```bash
+cp .env.example .env
+```
+Edit the `.env` file and set your configuration parameters to match your Google Cloud environment:
+```ini
+# GCP Configuration
+GCP_PROJECT_ID=your-gcp-project-id
+GCP_LOCATION=us-central1
+
+# BigQuery Configuration
+BQ_DATASET=at_home_dataset
+BQ_TABLE=product_main_catalog
+
+# Cloud Storage Configuration
+GCS_BUCKET=at_home_product_lifestyle_content
+```
+
+---
+
+### Step 2: Install Dependencies
 Ensure the virtual environment is active, then install all Python dependencies using `agents-cli`:
 ```bash
 agents-cli install
@@ -111,7 +131,7 @@ agents-cli install
 
 ---
 
-### Step 5: Run and Test the Agent Locally
+### Step 3: Run and Test the Agent Locally
 
 You have multiple options to interact with and validate the agent locally:
 
@@ -133,7 +153,9 @@ You have multiple options to interact with and validate the agent locally:
   agents-cli eval run --all
   ```
 
-### Step 5.5: Configure Service Account Permissions (IAM)
+---
+
+### Step 4.a: Configure Service Account Permissions (IAM)
 When deployed to Vertex AI Agent Runtime (Agent Engine), the agent runs under the Vertex AI Custom Code Service Agent:
 `service-<gcp-project-number>@gcp-sa-aiplatform-re.iam.gserviceaccount.com`
 
@@ -163,7 +185,7 @@ gcloud projects add-iam-policy-binding <gcp-project-id> \
 
 ---
 
-### Step 6: Deploy the Agent to Agent Engine (Agent Runtime)
+### Step 4.b: Deploy the Agent to Agent Engine (Agent Runtime)
 Once local testing is complete, deploy your agent directly to the Agent Platform Runtime (Agent Engine). The target and execution details are automatically detected from `agents-cli-manifest.yaml`:
 
 ```bash
@@ -174,7 +196,7 @@ Upon successful completion, `agents-cli` will print the deployed **Reasoning Eng
 
 ---
 
-### Step 7: Link/Publish to a Gemini Enterprise App
+### Step 5: Link/Publish to a Gemini Enterprise App
 After the agent is successfully deployed, you can register it under a Gemini Enterprise App to make its capabilities accessible in conversational workflows.
 
 First, make sure you have created a Gemini Enterprise App in the Google Cloud Console under **Gemini Enterprise** -> **Apps**.
