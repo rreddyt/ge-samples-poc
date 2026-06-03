@@ -1,4 +1,4 @@
-# product-media-agent — Product Lifestyle Media Generation Agent
+# Product Lifestyle Media Generation Agent
 
 This project implements a collaborative marketing AI agent using the [**Agent Development Kit (ADK)**](https://adk.dev). The agent processes retail product details from a catalog inside Google BigQuery and produces
 * high-end marketing lifestyle images (using `gemini-3.1-flash-image`)
