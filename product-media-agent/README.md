@@ -192,7 +192,9 @@ gcloud projects add-iam-policy-binding <gcp-project-id> \
 
 ### Step 4.b: Deploy the Agent to Agent Engine (Agent Runtime)
 Once local testing is complete, deploy your agent directly to the Agent Platform Runtime (Agent Engine). The target and execution details are automatically detected from `agents-cli-manifest.yaml`. To ensure that the environment variables from the .env files are included in the deoloyment build, we will include the `--update-env-vars` option with the `agents-cli deploy` command. 
+
 **Make sure to replace `<YOUR_GCP_PROJECT_ID>`, `<YOUR_BQ_DATASET_NAME>`, `<YOUR_BQ_TABLE_NAME>`, and `<YOUR_GCS_BUCKET_NAME>` in the command below.**
+
 ```bash
 # Deploy the agent to Agent Runtime
 agents-cli deploy \
