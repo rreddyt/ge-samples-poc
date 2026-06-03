@@ -1,6 +1,6 @@
-# product-media-agent — Premium Product Lifestyle Content Generation Agent
+# product-media-agent — Product Lifestyle Media Generation Agent
 
-This project implements a collaborative ADK marketing agent using the **Agent Development Kit (ADK)**. The agent processes retail product details inside Google BigQuery and produces high-end marketing lifestyle images (using `gemini-3.1-flash-image`) and high-definition lifestyle videos (using `veo-3.1-fast-generate-001`) stored in Google Cloud Storage (GCS).
+This project implements a collaborative marketing AI agent using the **Agent Development Kit (ADK)**. The agent processes retail product details inside Google BigQuery and produces high-end marketing lifestyle images (using `gemini-3.1-flash-image`) and high-definition lifestyle videos (using `veo-3.1-fast-generate-001`) stored in Google Cloud Storage (GCS).
 
 ---
 
