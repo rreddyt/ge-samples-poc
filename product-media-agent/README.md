@@ -82,8 +82,6 @@ For additional installation options, see [agents-cli docs](https://docs.astral.s
 
 ## Quick Start & Deployment
 
----
-
 ### Step 0: Enable Required Google Cloud Service APIs
 Before you begin, ensure you have enabled the required APIs inside your Google Cloud project. You can do this via the Google Cloud Console or using the Google Cloud SDK CLI:
 
