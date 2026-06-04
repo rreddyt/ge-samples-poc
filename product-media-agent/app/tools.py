@@ -52,15 +52,28 @@ bq_table = os.environ.get("BQ_TABLE", "product_main_catalog")
 # Cloud Storage Configuration
 gcs_bucket = os.environ.get("GCS_BUCKET", "at_home_product_lifestyle_content")
 
-# Initialize clients
-bq_client = bigquery.Client(project=project_id, location="us-central1")
-storage_client = storage.Client(project=project_id)
+# Lazy clients
+_bq_client = None
+_storage_client = None
+
+def get_bq_client():
+    global _bq_client
+    if _bq_client is None:
+        _bq_client = bigquery.Client(project=project_id, location="us-central1")
+    return _bq_client
+
+def get_storage_client():
+    global _storage_client
+    if _storage_client is None:
+        _storage_client = storage.Client(project=project_id)
+    return _storage_client
+
 
 def _get_gcs_url(bucket_name: str, blob_name: str) -> str:
     """Generates a signed URL or falls back to authenticated browser URL."""
     try:
         from datetime import timedelta
-        bucket = storage_client.bucket(bucket_name)
+        bucket = get_storage_client().bucket(bucket_name)
         blob = bucket.blob(blob_name)
         # Generate signed URL (valid for 24 hours)
         signed_url = blob.generate_signed_url(
@@ -87,12 +100,12 @@ def _fetch_bq_rows(product_id: str = None, total_rows: int = 5) -> list:
             FROM `{project_id}.{bq_dataset}.{bq_table}`
             LIMIT {total_rows}
         """
-    query_job = bq_client.query(query)
+    query_job = get_bq_client().query(query)
     return list(query_job.result())
 
 def _upload_to_gcs(bucket_name: str, destination_blob_name: str, data_bytes: bytes, content_type: str = "image/jpeg") -> bool:
     """Private helper to upload generated media to GCS with fallbacks."""
-    bucket = storage_client.bucket(bucket_name)
+    bucket = get_storage_client().bucket(bucket_name)
     bucket_exists = False
     try:
         bucket_exists = bucket.exists()
@@ -102,11 +115,11 @@ def _upload_to_gcs(bucket_name: str, destination_blob_name: str, data_bytes: byt
     if not bucket_exists:
         fallback_bucket_name = "at_home_product_lifestyle_content"
         print(f"Bucket '{bucket_name}' does not exist. Checking fallback bucket '{fallback_bucket_name}'...")
-        bucket = storage_client.bucket(fallback_bucket_name)
+        bucket = get_storage_client().bucket(fallback_bucket_name)
         try:
             if not bucket.exists():
                 print(f"Fallback bucket '{fallback_bucket_name}' does not exist. Creating it...")
-                bucket = storage_client.create_bucket(fallback_bucket_name, project=project_id, location=veo_location)
+                bucket = get_storage_client().create_bucket(fallback_bucket_name, project=project_id, location=veo_location)
                 print(f"Successfully created bucket '{fallback_bucket_name}'.")
         except Exception as e:
             print(f"Failed to check or create fallback bucket '{fallback_bucket_name}'. Error: {e}")
@@ -439,7 +452,7 @@ def generate_and_save_lifestyle_video(product_id: str, additional_instructions: 
                 src_bucket_name = gcs_match.group(1)
                 src_blob_name = gcs_match.group(2)
                 try:
-                    src_bucket = storage_client.bucket(src_bucket_name)
+                    src_bucket = get_storage_client().bucket(src_bucket_name)
                     src_blob = src_bucket.blob(src_blob_name)
                     video_bytes = src_blob.download_as_bytes()
                 except Exception as e:

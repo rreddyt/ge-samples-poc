@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import faulthandler
+faulthandler.enable()
+
 import logging
 import os
 from typing import Any
@@ -55,11 +58,15 @@ class AgentEngineApp(AdkApp):
 
 gemini_location = os.environ.get("GOOGLE_CLOUD_LOCATION")
 logs_bucket_name = os.environ.get("LOGS_BUCKET_NAME")
-agent_runtime = AgentEngineApp(
-    app=adk_app,
-    artifact_service_builder=lambda: (
+
+def build_artifact_service():
+    return (
         GcsArtifactService(bucket_name=logs_bucket_name)
         if logs_bucket_name
         else InMemoryArtifactService()
-    ),
+    )
+
+agent_runtime = AgentEngineApp(
+    app=adk_app,
+    artifact_service_builder=build_artifact_service,
 )

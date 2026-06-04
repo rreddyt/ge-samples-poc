@@ -14,6 +14,8 @@
 
 from google.adk.agents import Agent
 from google.adk.apps import App
+from google.adk.planners.built_in_planner import BuiltInPlanner
+from google.genai import types
 
 from app.tools import (
     get_product_details,
@@ -36,7 +38,7 @@ image_generation_agent = Agent(
     1. Call the `generate_and_save_lifestyle_image` tool, passing the exact `product_id`.
     2. If provided, include custom aesthetic, setting, or lighting directions as `additional_instructions`.
     3. The tool will return a JSON string containing `status`, `gcs_uri`, `authenticated_url`, and `media_type`. Parse this JSON and return the GCS path, authenticated URL, and product details back to the director.""",
-    generate_content_config=types.GenerateContentConfig(
+    planner=BuiltInPlanner(
         thinking_config=types.ThinkingConfig(
             thinking_level="HIGH",      # Options: "minimal", "low", "medium", "high"
             include_thoughts=True,     # Instructs the API to output the thoughts
@@ -56,7 +58,7 @@ video_generation_agent = Agent(
     1. Call the `generate_and_save_lifestyle_video` tool, passing the exact `product_id`.
     2. If provided, include custom camera movement or setting directions as `additional_instructions`.
     3. The tool will return a JSON string containing `status`, `gcs_uri`, `authenticated_url`, and `media_type`. Parse this JSON and return the GCS path, authenticated URL, and product details back to the director.""",
-    generate_content_config=types.GenerateContentConfig(
+    planner=BuiltInPlanner(
         thinking_config=types.ThinkingConfig(
             thinking_level="HIGH",      # Options: "minimal", "low", "medium", "high"
             include_thoughts=True,     # Instructs the API to output the thoughts
@@ -113,7 +115,7 @@ media_director_agent = Agent(
            - Image: `![Product ID](authenticated_url)`
        
     Always maintain a premium, professional tone and ensure all authenticated links and embedded assets are rendered beautifully in your final response.""",
-    generate_content_config=types.GenerateContentConfig(
+    planner=BuiltInPlanner(
         thinking_config=types.ThinkingConfig(
             thinking_level="HIGH",      # Options: "minimal", "low", "medium", "high"
             include_thoughts=True,     # Instructs the API to output the thoughts
