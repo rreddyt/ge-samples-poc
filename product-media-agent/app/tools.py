@@ -86,6 +86,13 @@ def _get_gcs_url(bucket_name: str, blob_name: str) -> str:
         print(f"Failed to generate signed URL: {e}. Falling back to authenticated browser URL.")
         return f"https://storage.cloud.google.com/{bucket_name}/{blob_name}"
 
+def _get_public_url(bucket_name: str, blob_name: str) -> str:
+    """Returns the public (unauthenticated) HTTPS URL for a GCS object.
+
+    Only resolves if the object/bucket grants public read access.
+    """
+    return f"https://storage.googleapis.com/{bucket_name}/{blob_name}"
+
 def _fetch_bq_rows(product_id: str = None, total_rows: int = 5) -> list:
     """Private helper to query BigQuery catalog."""
     if product_id:
@@ -216,24 +223,35 @@ def generate_and_save_lifestyle_image(product_id: str, additional_instructions: 
         clean_desc = re.sub('<[^<]+?>', ' ', short_desc)
         clean_desc = " ".join(clean_desc.split())
         
-        # Parse reference image URL from cloudinaryProductImages
+        # Parse reference image URLs from cloudinaryProductImages (use up to first 3)
         cloudinary_images = row["cloudinaryProductImages"]
-        image_url = None
+        image_urls = []
         if cloudinary_images:
             try:
                 images_json = json.loads(cloudinary_images)
-                image_url = images_json.get("image1")
+                for i in range(1, 4):
+                    url = images_json.get(f"image{i}")
+                    if url:
+                        image_urls.append(url)
             except Exception as e:
                 print(f"Error parsing cloudinaryProductImages: {e}")
-                
-        if not image_url:
+
+        if not image_urls:
             return json.dumps({"status": "error", "message": f"No valid reference image URL found for product ID {product_id}."})
-        
-        # Download reference image
-        img_response = requests.get(image_url)
-        img_response.raise_for_status()
-        image_data = img_response.content
-        
+
+        # Download reference images
+        image_data_list = []
+        for url in image_urls:
+            try:
+                img_response = requests.get(url)
+                img_response.raise_for_status()
+                image_data_list.append(img_response.content)
+            except Exception as e:
+                print(f"Error downloading reference image {url}: {e}")
+
+        if not image_data_list:
+            return json.dumps({"status": "error", "message": f"Failed to download any reference images for product ID {product_id}."})
+
         # Initialize standard GenAI Client
         client = genai.Client(vertexai=True, project=project_id, location=gemini_location)
         
@@ -246,8 +264,12 @@ def generate_and_save_lifestyle_image(product_id: str, additional_instructions: 
             f"Product Description: {clean_desc}\n\n"
             "Image generation instructions:\n"
             "The product must be perfectly integrated into a lifestyle setting.\n"
-            "The exact product from the reference image must be seamlessly blended into the new environment, "
-            "preserving its original details and color. Adapt naturally to the new lighting, cast shadows, perspective, and reflections."
+            "Use the attached reference image(s) to understand the exact product from multiple angles. "
+            "The exact product from the reference images must be seamlessly blended into the new environment, "
+            "preserving its original details and color. Adapt naturally to the new lighting, cast shadows, perspective, and reflections.\n"
+            "Only depict the product from angles and sides that are actually visible in the reference image(s). "
+            "If a particular side or angle (e.g., the back or a side view) is not shown in any reference image, do NOT invent, guess, or fabricate it. "
+            "Instead, compose the scene so the product is shown only from angles supported by the references, keeping unseen parts out of view or naturally occluded."
         )
         
         if additional_instructions:
@@ -255,12 +277,15 @@ def generate_and_save_lifestyle_image(product_id: str, additional_instructions: 
             
         # Call Gemini Multimodal Image API (gemini-3.1-flash-image)
         msg_text = types.Part.from_text(text=prompt_text)
-        msg_image = types.Part.from_bytes(data=image_data, mime_type="image/jpeg")
-        
+        msg_images = [
+            types.Part.from_bytes(data=img_bytes, mime_type="image/jpeg")
+            for img_bytes in image_data_list
+        ]
+
         contents = [
             types.Content(
                 role="user",
-                parts=[msg_text, msg_image]
+                parts=[msg_text, *msg_images]
             )
         ]
         
@@ -324,10 +349,12 @@ def generate_and_save_lifestyle_image(product_id: str, additional_instructions: 
         if success:
             gcs_uri = f"gs://{gcs_bucket}/{destination_blob}"
             http_url = _get_gcs_url(gcs_bucket, destination_blob)
+            public_url = _get_public_url(gcs_bucket, destination_blob)
             return json.dumps({
                 "status": "success",
                 "gcs_uri": gcs_uri,
                 "authenticated_url": http_url,
+                "public_url": public_url,
                 "media_type": "image",
                 "product_id": product_id,
                 "product_details": {
@@ -479,10 +506,12 @@ def generate_and_save_lifestyle_video(product_id: str, additional_instructions: 
         if success:
             gcs_uri = f"gs://{gcs_bucket}/{destination_blob}"
             http_url = _get_gcs_url(gcs_bucket, destination_blob)
+            public_url = _get_public_url(gcs_bucket, destination_blob)
             return json.dumps({
                 "status": "success",
                 "gcs_uri": gcs_uri,
                 "authenticated_url": http_url,
+                "public_url": public_url,
                 "media_type": "video",
                 "product_id": product_id,
                 "product_details": {
