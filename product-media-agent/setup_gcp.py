@@ -15,6 +15,7 @@
 import os
 import sys
 import json
+from datetime import datetime
 
 # Early load environment variables from .env
 try:
@@ -38,10 +39,11 @@ from google.genai import types
 from pydantic import BaseModel
 
 class ProductDetail(BaseModel):
-    sku: str
-    name: str
-    description: str
-    category: str
+    product_id: str
+    product_name: str
+    short_description: str
+    primaryCategoryName: str
+    dimensions: str
 
 class MockCatalog(BaseModel):
     products: list[ProductDetail]
@@ -68,10 +70,11 @@ def generate_mock_catalog_with_gemini() -> list[dict]:
         Generate exactly 4 highly descriptive mock retail product catalog records.
         They must be for a premium retail store in the categories: 'Pillows', 'Furniture', or 'Lighting'.
         For each product, provide:
-        - A unique SKU like SKU-XXXXX (where X is a digit)
-        - An official product name suitable for a high-end store
-        - A detailed description (2-3 sentences) detailing its material, color, visual style, and traits
-        - Its category (must be either 'Pillows', 'Furniture', or 'Lighting')
+        - A unique product_id like SKU-XXXXX (where X is a digit)
+        - An official product_name suitable for a high-end store
+        - A detailed short_description (2-3 sentences) detailing its material, color, visual style, and traits
+        - Its primaryCategoryName (must be either 'Pillows', 'Furniture', or 'Lighting')
+        - Its physical dimensions (e.g., '18 in x 18 in x 6 in' for a pillow, '30 in x 36 in x 72 in' for furniture)
         """
         
         response = client.models.generate_content(
@@ -89,10 +92,11 @@ def generate_mock_catalog_with_gemini() -> list[dict]:
             print(f"✓ Successfully generated {len(products)} mock products via Gemini!")
             return [
                 {
-                    "sku": p["sku"],
-                    "name": p["name"],
-                    "description": p["description"],
-                    "category": p["category"]
+                    "product_id": p["product_id"],
+                    "product_name": p["product_name"],
+                    "short_description": p["short_description"],
+                    "primaryCategoryName": p["primaryCategoryName"],
+                    "dimensions": p["dimensions"]
                 }
                 for p in products
             ]
@@ -103,28 +107,32 @@ def generate_mock_catalog_with_gemini() -> list[dict]:
     print("💡 Falling back to default sample product catalog...")
     return [
         {
-            "sku": "SKU-10948",
-            "name": "Boho Chic Tufted Throw Pillow",
-            "description": "A gorgeous, cream-colored woven cotton throw pillow with elegant hand-knotted tassels. Perfect for adding texture and warmth to your boho-chic living room sofa.",
-            "category": "Pillows",
+            "product_id": "124400264",
+            "product_name": "Boho Chic Tufted Throw Pillow",
+            "short_description": "A gorgeous, cream-colored woven cotton throw pillow with elegant hand-knotted tassels. Perfect for adding texture and warmth to your boho-chic living room sofa.",
+            "primaryCategoryName": "Pillows",
+            "dimensions": "18 in x 18 in x 6 in"
         },
         {
-            "sku": "SKU-88492",
-            "name": "Minimalist Oakwood Bedside Nightstand",
-            "description": "Sleek, natural oak bedside table with one drawer and minimalist matte black metal legs. Brings a clean Scandinavian design style to your bedroom.",
-            "category": "Furniture",
+            "product_id": "124400265",
+            "product_name": "Minimalist Oakwood Bedside Nightstand",
+            "short_description": "Sleek, natural oak bedside table with one drawer and minimalist matte black metal legs. Brings a clean Scandinavian design style to your bedroom.",
+            "primaryCategoryName": "Furniture",
+            "dimensions": "20 in x 18 in x 24 in"
         },
         {
-            "sku": "SKU-34092",
-            "name": "Emerald Green Velvet Accent Armchair",
-            "description": "Luxurious deep emerald green velvet armchair with padded armrests and elegant tapered brass gold legs. Adds mid-century modern sophistication.",
-            "category": "Furniture",
+            "product_id": "124400266",
+            "product_name": "Emerald Green Velvet Accent Armchair",
+            "short_description": "Luxurious deep emerald green velvet armchair with padded armrests and elegant tapered brass gold legs. Adds mid-century modern sophistication.",
+            "primaryCategoryName": "Furniture",
+            "dimensions": "32 in x 30 in x 35 in"
         },
         {
-            "sku": "SKU-57281",
-            "name": "Industrial Matte Black Tripod Floor Lamp",
-            "description": "Sleek matte black metal tripod floor lamp featuring a vintage amber Edison bulb. Creates warm, comfortable, ambient lighting for any modern reading nook.",
-            "category": "Lighting",
+            "product_id": "124400267",
+            "product_name": "Industrial Matte Black Tripod Floor Lamp",
+            "short_description": "Sleek matte black metal tripod floor lamp featuring a vintage amber Edison bulb. Creates warm, comfortable, ambient lighting for any modern reading nook.",
+            "primaryCategoryName": "Lighting",
+            "dimensions": "15 in x 15 in x 65 in"
         }
     ]
 
@@ -151,89 +159,38 @@ def generate_mock_image_with_imagen(product_name: str, angle: str) -> bytes | No
     return None
 
 def setup_resources():
-    """Provision BigQuery dataset/tables, create GCS bucket, populate category guidelines and sample data."""
+    """Provision BigQuery dataset/table, create GCS bucket, and populate sample product data."""
     
     # 1. Determine GCP configuration from environment or default context
     _, project_default = google.auth.default()
     project_id = os.environ.get("GCP_PROJECT_ID", project_default)
-    location = os.environ.get("GCP_LOCATION", "us-central1")
+    location = os.environ.get("BQ_LOCATION", os.environ.get("GCP_LOCATION", "us-central1"))
     
-    bq_dataset = os.environ.get("BQ_DATASET", "retail_catalog_dataset")
-    bq_products_table = os.environ.get("BQ_PRODUCTS_TABLE", "products")
-    bq_tags_table = os.environ.get("BQ_TAGS_TABLE", "product_tags")
+    bq_dataset = os.environ.get("BQ_DATASET", "at_home_dataset")
+    bq_catalog_table = os.environ.get("BQ_TABLE", "product_main_catalog")
     
-    products_table_id = f"{project_id}.{bq_dataset}.{bq_products_table}"
-    tags_table_id = f"{project_id}.{bq_dataset}.{bq_tags_table}"
+    catalog_table_id = f"{project_id}.{bq_dataset}.{bq_catalog_table}"
     
-    bucket_name = os.environ.get("GCS_BUCKET_NAME", f"retail_product_media_{project_id}")
+    # Bucket name must be globally unique
+    bucket_name = os.environ.get("GCS_BUCKET", f"vr-product-lifestyle-content-{project_id}")
 
     print("=" * 80)
-    print(f"🛠️  STARTING GCP PROVISIONING SCRIPT (Generic Retail Support)")
-    print(f"   GCP Project ID:  {project_id}")
-    print(f"   Location/Region: {location}")
-    print(f"   Target GCS Bucket: {bucket_name}")
-    print(f"   Target BQ Tables:  {products_table_id}")
-    print(f"                      {tags_table_id}")
+    print(f"🛠️  STARTING GCP PROVISIONING SCRIPT (Product Media Agent)")
+    print(f"   GCP Project ID:    {project_id}")
+    print(f"   BigQuery Dataset:  {bq_dataset}")
+    print(f"   BigQuery Table:    {bq_catalog_table}")
+    print(f"   GCS Bucket:        {bucket_name}")
+    print(f"   Region/Location:   {location}")
     print("=" * 80)
 
     # Initialize clients
-    bq_client = bigquery.Client(project=project_id)
+    bq_client = bigquery.Client(project=project_id, location=location)
     storage_client = storage.Client(project=project_id)
 
     # --------------------------------------------------------------------------
-    # 2. Provision BigQuery Dataset & Tables
+    # 2. Provision Cloud Storage Bucket
     # --------------------------------------------------------------------------
-    dataset_ref = bigquery.DatasetReference(project_id, bq_dataset)
-    
-    try:
-        bq_client.get_dataset(dataset_ref)
-        print(f"\n✓ BigQuery Dataset '{bq_dataset}' already exists.")
-    except NotFound:
-        print(f"\nDataset '{bq_dataset}' not found. Creating it...")
-        dataset = bigquery.Dataset(dataset_ref)
-        dataset.location = location
-        bq_client.create_dataset(dataset)
-        print(f"🎉 Successfully created BigQuery Dataset '{bq_dataset}'.")
-
-    # 2a. Create Products Table (Drop first to refresh schema)
-    products_table_ref = bigquery.TableReference(dataset_ref, bq_products_table)
-    try:
-        bq_client.delete_table(products_table_ref)
-        print(f"ℹ Deleted old BigQuery products table to refresh schema.")
-    except NotFound:
-        pass
-
-    print(f"Creating table '{bq_products_table}' structure (category & images_gcs_folder)...")
-    schema = [
-        bigquery.SchemaField("sku", "STRING", mode="REQUIRED", description="Product unique SKU identifier"),
-        bigquery.SchemaField("name", "STRING", mode="REQUIRED", description="Official product name"),
-        bigquery.SchemaField("description", "STRING", description="Marketing details and traits description"),
-        bigquery.SchemaField("category", "STRING", description="Official product category"),
-        bigquery.SchemaField("images_gcs_folder", "STRING", description="GCS Folder URL holding the 360 view images of the product alone"),
-    ]
-    table = bigquery.Table(products_table_ref, schema=schema)
-    bq_client.create_table(table)
-    print(f"🎉 Successfully created BigQuery Products Table '{bq_products_table}'.")
-
-    # 2b. Create Tags Table
-    tags_table_ref = bigquery.TableReference(dataset_ref, bq_tags_table)
-    try:
-        bq_client.get_table(tags_table_ref)
-        print(f"✓ BigQuery Table '{bq_tags_table}' already exists.")
-    except NotFound:
-        print(f"Table '{bq_tags_table}' not found. Creating separate tags table structure...")
-        schema = [
-            bigquery.SchemaField("sku", "STRING", mode="REQUIRED", description="Product unique SKU identifier"),
-            bigquery.SchemaField("tags", "STRING", description="Comma-separated marketing classification tags"),
-        ]
-        table = bigquery.Table(tags_table_ref, schema=schema)
-        bq_client.create_table(table)
-        print(f"🎉 Successfully created BigQuery Tags Table '{bq_tags_table}'.")
-
-    # --------------------------------------------------------------------------
-    # 3. Provision Cloud Storage Bucket & Folder Structures
-    # --------------------------------------------------------------------------
-    print(f"\nProvisioning Cloud Storage bucket...")
+    print(f"\nProvisioning Cloud Storage bucket '{bucket_name}'...")
     bucket = storage_client.lookup_bucket(bucket_name)
     
     if bucket:
@@ -247,105 +204,128 @@ def setup_resources():
             print(f"❌ Failed to create Storage Bucket '{bucket_name}': {bucket_error}")
             return
 
-    # Create keep file inside bucket
+    # Ensure lifestyle_images/ and product_videos/ folders exist in the bucket
     try:
-        keep_blob = bucket.blob("lifestyle_images/.keep")
-        keep_blob.upload_from_string(
-            "Placeholder keep file to instantiate virtual directory 'lifestyle_images/'.",
-            content_type="text/plain"
-        )
-        print("🎉 Successfully verified 'lifestyle_images/' folder structure.")
+        for folder in ["lifestyle_images/", "product_videos/", "product_images/"]:
+            keep_blob = bucket.blob(f"{folder}.keep")
+            keep_blob.upload_from_string(
+                f"Placeholder keep file to instantiate folder '{folder}'.",
+                content_type="text/plain"
+            )
+        print("✓ Verified GCS media folder structures.")
     except Exception as folder_error:
-        print(f"❌ Error creating keep file: {folder_error}")
-
-    # 3b. Create and Upload Category Styling Guidelines
-    print("\nUploading category-specific styling guidelines to GCS bucket...")
-    guidelines = {
-        "Pillows": """Category: Pillows
-Styling & Image Guidelines:
-- Always style throw pillows on a high-end, textured fabric sofa (light grey, cream, or beige) or neatly made beds.
-- Ensure warm, inviting, natural sunlight streams in from the side, creating soft shadows.
-- Decor should be Boho Chic, introducing hand-knotted cotton tassels, macrame elements, and green houseplants in the background.
-- Maintain a clean, professional interior design magazine aesthetic. Bright and airy.""",
-        
-        "Furniture": """Category: Furniture
-Styling & Image Guidelines:
-- Furniture must be positioned in a clean, Scandinave-style minimalist room.
-- Surround the product with ample breathing space to emphasize structure and clean lines.
-- Incorporate natural wood finishes, matte black contrasts, and highly sophisticated home decors (like a single abstract ceramic vase or stack of linen books).
-- Lighting should be soft, diffused, and comfortable. Neutral organic tones.""",
-        
-        "Lighting": """Category: Lighting
-Styling & Image Guidelines:
-- Show the tripod floor lamp styled beside a comfortable reading armchair (e.g. leather or boucle fabric) in a cozy modern nook.
-- The scene should highlight the warm amber ambient glow of the Edison bulb in a dimly lit setting.
-- Background details should include a rich wooden bookshelf and textured warm rugs to create contrast.
-- Intimate, cozy, and premium cabin-like atmosphere."""
-    }
-    
-    for cat, text in guidelines.items():
-        blob_name = f"category_guidelines/{cat}/guidelines.txt"
-        try:
-            blob = bucket.blob(blob_name)
-            blob.upload_from_string(text, content_type="text/plain")
-            print(f"  🎉 Uploaded styling guidelines for Category '{cat}' to GCS.")
-        except Exception as g_err:
-            print(f"  ❌ Failed uploading guidelines for Category '{cat}': {g_err}")
+        print(f"❌ Error creating GCS folders: {folder_error}")
 
     # --------------------------------------------------------------------------
-    # 4. Populate BigQuery Table & Upload 360 product images to GCS
+    # 3. Provision BigQuery Dataset & Catalog Table
     # --------------------------------------------------------------------------
-    print(f"\nPopulating products table and uploading 360-degree product images to Cloud Storage...")
+    dataset_ref = bigquery.DatasetReference(project_id, bq_dataset)
     
-    # Dynamically generate catalog using Gemini
+    try:
+        bq_client.get_dataset(dataset_ref)
+        print(f"\n✓ BigQuery Dataset '{bq_dataset}' already exists.")
+    except NotFound:
+        print(f"\nDataset '{bq_dataset}' not found. Creating it...")
+        dataset = bigquery.Dataset(dataset_ref)
+        dataset.location = location
+        bq_client.create_dataset(dataset)
+        print(f"🎉 Successfully created BigQuery Dataset '{bq_dataset}'.")
+
+    # Create Catalog Table (Drop first to refresh schema)
+    catalog_table_ref = bigquery.TableReference(dataset_ref, bq_catalog_table)
+    try:
+        bq_client.delete_table(catalog_table_ref)
+        print(f"ℹ Deleted old BigQuery catalog table to refresh schema.")
+    except NotFound:
+        pass
+
+    print(f"Creating table '{bq_catalog_table}' with the correct schema...")
+    schema = [
+        bigquery.SchemaField("product-id", "STRING", mode="REQUIRED", description="Unique product catalog identifier"),
+        bigquery.SchemaField("product-name", "STRING", mode="REQUIRED", description="Official product name"),
+        bigquery.SchemaField("primaryCategoryName", "STRING", description="Official product category"),
+        bigquery.SchemaField("short-description", "STRING", description="Detailed marketing description"),
+        bigquery.SchemaField("Dimensions", "STRING", description="Physical dimensions of the product"),
+        bigquery.SchemaField("cloudinaryProductImages", "STRING", description="JSON string containing reference image URLs"),
+    ]
+    table = bigquery.Table(catalog_table_ref, schema=schema)
+    bq_client.create_table(table)
+    print(f"🎉 Successfully created BigQuery Catalog Table '{bq_catalog_table}'.")
+
+    # --------------------------------------------------------------------------
+    # 4. Generate Mock Products, Upload 360 images, and Populate BigQuery
+    # --------------------------------------------------------------------------
+    print(f"\nGenerating sample product catalog and uploading reference images to GCS...")
+    
+    # Dynamically generate catalog using Gemini or fallback
     sample_products_raw = generate_mock_catalog_with_gemini()
     
-    sample_products = []
-    for prod in sample_products_raw:
-        sku = prod["sku"]
-        sample_products.append({
-            "sku": sku,
-            "name": prod["name"],
-            "description": prod["description"],
-            "category": prod["category"],
-            "images_gcs_folder": f"gs://{bucket_name}/products/{sku}_360/"
-        })
-
-    # Insert products into BigQuery
-    try:
-        errors = bq_client.insert_rows_json(products_table_id, sample_products)
-        if not errors:
-            print(f"🎉 Successfully inserted {len(sample_products)} sample product rows into BigQuery products table.")
-        else:
-            print(f"❌ Errors inserting sample products: {errors}")
-    except Exception as insert_error:
-        print(f"❌ Failed to insert products data into BigQuery products table: {insert_error}")
-
-    # Upload GCS 360 images (Front, Side, Back angles) for each product SKU
-    print("Uploading simulated 360-degree visual angle images to GCS bucket...")
     angles = ["front", "side", "back"]
     color_map = {"front": "lightgrey", "side": "grey", "back": "darkgrey"}
     
-    for prod in sample_products:
-        sku = prod["sku"]
-        name = prod["name"]
-        print(f"  Uploading 360 view angles for SKU {sku} ({name})...")
-        for angle in angles:
-            blob_name = f"products/{sku}_360/{angle}.png"
+    sample_products = []
+    
+    for prod in sample_products_raw:
+        product_id = prod["product_id"]
+        name = prod["product_name"]
+        print(f"\n  Processing product '{name}' (ID: {product_id})...")
+        
+        image_urls = {}
+        for i, angle in enumerate(angles, start=1):
+            blob_name = f"products/{product_id}/{angle}.png"
             
             # Try to generate a real product image via Imagen, fallback to color PNG
             png_bytes = generate_mock_image_with_imagen(name, angle)
             if not png_bytes:
-                print(f"    ℹ Using solid color fallback PNG for SKU {sku} ({angle} view)")
+                print(f"    ℹ Using solid color fallback PNG for '{name}' ({angle} view)")
                 png_bytes = create_dummy_png(color_map[angle])
                 
             try:
                 blob = bucket.blob(blob_name)
                 blob.upload_from_string(png_bytes, content_type="image/png")
+                # Make the blob publicly readable so the agent's tools can download it via HTTP
+                try:
+                    blob.make_public()
+                    public_url = blob.public_url
+                except Exception:
+                    # If make_public fails (e.g. bucket has uniform bucket-level access enabled),
+                    # use the standard storage.googleapis.com URL
+                    public_url = f"https://storage.googleapis.com/{bucket_name}/{blob_name}"
+                
+                image_urls[f"image{i}"] = public_url
+                print(f"    ✓ Uploaded {angle} view to GCS: {public_url}")
             except Exception as upload_err:
                 print(f"    ❌ Failed uploading {blob_name} to GCS: {upload_err}")
                 
+        # Construct the BQ row matching the exact schema
+        sample_products.append({
+            "product-id": product_id,
+            "product-name": name,
+            "primaryCategoryName": prod["primaryCategoryName"],
+            "short-description": prod["short_description"],
+            "Dimensions": prod["dimensions"],
+            "cloudinaryProductImages": json.dumps(image_urls)
+        })
+
+    # Insert rows into BigQuery
+    print(f"\nInserting mock product rows into BigQuery table '{bq_catalog_table}'...")
+    try:
+        errors = bq_client.insert_rows_json(catalog_table_id, sample_products)
+        if not errors:
+            print(f"🎉 Successfully loaded {len(sample_products)} products into BigQuery!")
+        else:
+            print(f"❌ Errors inserting sample products: {errors}")
+            sys.exit(1)
+    except Exception as insert_error:
+        print(f"❌ Failed to insert products data: {insert_error}")
+        sys.exit(1)
+        
     print("\n🏁 GCP Resources Setup Script completed successfully!")
+    print("=" * 80)
+    print("\n👉 Next steps:")
+    print("   1. Check your .env file and ensure GCS_BUCKET matches:")
+    print(f"      GCS_BUCKET={bucket_name}")
+    print("   2. Run the agent locally using: agents-cli playground")
     print("=" * 80)
 
 if __name__ == "__main__":

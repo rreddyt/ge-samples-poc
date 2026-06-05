@@ -115,11 +115,13 @@ GEMINI_LOCATION=global
 VEO_LOCATION=us-central1
 
 # BigQuery Configuration
-BQ_DATASET=your_bq_dataset
-BQ_TABLE=your_product_catalog_table
+BQ_DATASET=at_home_dataset
+BQ_TABLE=product_main_catalog
+BQ_STATUS_TABLE=media_generation_status
+BQ_LOCATION=us-central1
 
 # Cloud Storage Configuration
-GCS_BUCKET=you_product_lifestyle_media_content_gcs_bucket
+GCS_BUCKET=your-gcs-bucket-name
 
 # Workstation mTLS Bypass Configuration (to prevent certificate helper crashes on corporate laptops)
 GOOGLE_API_USE_CLIENT_CERTIFICATE=false
@@ -133,6 +135,23 @@ Ensure the virtual environment is active, then install all Python dependencies u
 ```bash
 agents-cli install
 ```
+
+---
+
+### Step 2.b: Provision and Populate GCP Resources (BigQuery & GCS)
+To run the agent, you need a BigQuery product catalog table containing source product details and a GCS bucket containing reference product images. 
+
+We provide a comprehensive setup script `setup_gcp.py` that automates this. The script:
+1. Creates the Google Cloud Storage bucket (using the `GCS_BUCKET` name configured in your `.env`).
+2. Generates a mock retail catalog of 4 premium products using **Gemini 2.5 Flash**.
+3. Generates professional studio reference images (front, side, and back angles) for each product using **Imagen 3**, uploads them to your GCS bucket, and makes them publicly accessible.
+4. Creates the BigQuery dataset and the catalog table (`product_main_catalog`) with the exact schema expected by the agent, and populates it with the generated product details and reference image URLs.
+
+To run the provisioning script:
+```bash
+python setup_gcp.py
+```
+*Note: If the script fails to create a GCS bucket, ensure that your `GCS_BUCKET` name in `.env` is globally unique.*
 
 ---
 
@@ -200,7 +219,7 @@ Once local testing is complete, deploy your agent directly to the Agent Platform
 agents-cli deploy \
   --project <YOUR_GCP_PROJECT_ID> \
   --region us-central1 \
-  --update-env-vars "GCP_PROJECT_ID=<YOUR_GCP_PROJECT_ID>,GEMINI_LOCATION=global,VEO_LOCATION=us-central1,BQ_DATASET=<YOUR_BQ_DATASET_NAME>,BQ_TABLE=<YOUR_BQ_TABLE_NAME>,GCS_BUCKET=<YOUR_GCS_BUCKET_NAME>"
+  --update-env-vars "GCP_PROJECT_ID=<YOUR_GCP_PROJECT_ID>,GEMINI_LOCATION=global,VEO_LOCATION=us-central1,BQ_DATASET=<YOUR_BQ_DATASET_NAME>,BQ_TABLE=<YOUR_BQ_TABLE_NAME>,BQ_STATUS_TABLE=media_generation_status,BQ_LOCATION=us-central1,GCS_BUCKET=<YOUR_GCS_BUCKET_NAME>"
 ```
 Upon successful completion, `agents-cli` will print the deployed **Reasoning Engine resource path** (e.g., `projects/<your-project-id>/locations/us-central1/reasoningEngines/<engine-id>`) and automatically write it to the local `deployment_metadata.json` file.
 
