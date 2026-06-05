@@ -183,28 +183,27 @@ You have multiple options to interact with and validate the agent locally:
 When deployed to Vertex AI Agent Runtime (Agent Engine), the agent runs under the Vertex AI Custom Code Service Agent:
 `service-<gcp-project-number>@gcp-sa-aiplatform-re.iam.gserviceaccount.com`
 
-This service account must have appropriate permissions to query your BigQuery datasets and write generated marketing assets (images and videos) to your Cloud Storage bucket.
+To adhere to the principle of least privilege, we only grant this service account the exact permissions it needs to operate, restricted to the specific BigQuery dataset and Cloud Storage bucket.
 
-Run the following `gcloud` commands to apply these required role bindings (replace `<gcp-project-id>` with your GCP project ID, and `<gcp-project-number>` with your project number):
+Run the following `gcloud` commands to apply these required role bindings (replace `<gcp-project-id>`, `<gcp-project-number>`, `<bq-dataset-name>`, and `<gcs-bucket-name>` with your actual values):
 
 ```bash
-# 1. Grant BigQuery Job User (to run query jobs)
+# 1. Grant BigQuery Job User at the Project level (required to execute query jobs)
 gcloud projects add-iam-policy-binding <gcp-project-id> \
     --member="serviceAccount:service-<gcp-project-number>@gcp-sa-aiplatform-re.iam.gserviceaccount.com" \
     --role="roles/bigquery.jobUser" \
     --condition=None
 
-# 2. Grant BigQuery Data Viewer (to read the catalog table)
-gcloud projects add-iam-policy-binding <gcp-project-id> \
+# 2. Grant BigQuery Data Editor on the specific Dataset (required to read the catalog and write/update status logs)
+gcloud bigquery datasets add-iam-policy-binding <bq-dataset-name> \
+    --project=<gcp-project-id> \
     --member="serviceAccount:service-<gcp-project-number>@gcp-sa-aiplatform-re.iam.gserviceaccount.com" \
-    --role="roles/bigquery.dataViewer" \
-    --condition=None
+    --role="roles/bigquery.dataEditor"
 
-# 3. Grant Storage Object Admin (to upload generated images and videos)
-gcloud projects add-iam-policy-binding <gcp-project-id> \
+# 3. Grant Storage Object Admin on the specific GCS Bucket (required to upload generated images and videos)
+gcloud storage buckets add-iam-policy-binding gs://<gcs-bucket-name> \
     --member="serviceAccount:service-<gcp-project-number>@gcp-sa-aiplatform-re.iam.gserviceaccount.com" \
-    --role="roles/storage.objectAdmin" \
-    --condition=None
+    --role="roles/storage.objectAdmin"
 ```
 
 ---
