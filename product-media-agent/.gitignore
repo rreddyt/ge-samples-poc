@@ -180,6 +180,7 @@ yarn-error.log
 testem.log
 /typings
 /scratch
+scratch/
 
 # System files
 .DS_Store

@@ -11,7 +11,7 @@
     ],
     "pushNotifications": null,
     "stateTransitionHistory": null,
-    "streaming": false
+    "streaming": true
   },
   "defaultInputModes": [
     "text/plain"

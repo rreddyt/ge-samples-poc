@@ -36,11 +36,12 @@ from google.cloud import bigquery
 from google.cloud import storage
 from google import genai
 from google.genai import types
+from google.adk.tools import ToolContext
 
 # Retrieve configurations from environment
 _, project_default = google.auth.default()
 project_id = os.environ.get("GCP_PROJECT_ID", project_default)
-gemini_location = os.environ.get("GEMINI_LOCATION", os.environ.get("GCP_LOCATION", "global"))
+gemini_location = os.environ.get("GEMINI_LOCATION", os.environ.get("GCP_LOCATION", "us-central1"))
 veo_location = os.environ.get("VEO_LOCATION", "us-central1")
 
 os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
@@ -50,6 +51,343 @@ os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "True"
 # BigQuery Configuration
 bq_dataset = os.environ.get("BQ_DATASET", "at_home_dataset")
 bq_table = os.environ.get("BQ_TABLE", "product_main_catalog")
+bq_status_table = os.environ.get("BQ_STATUS_TABLE", "media_generation_status")
+bq_location = os.environ.get("BQ_LOCATION", "us-central1")
+
+from typing import Optional
+
+def _ensure_status_table_exists(client: bigquery.Client) -> str:
+    table_ref = client.dataset(bq_dataset).table(bq_status_table)
+    try:
+        client.get_table(table_ref)
+        return f"{project_id}.{bq_dataset}.{bq_status_table}"
+    except Exception:
+        # Create table if it doesn't exist
+        schema = [
+            bigquery.SchemaField("product_id", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("lifestyle_media_file_name", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("gcs_authenticated_file_path", "STRING", mode="NULLABLE"),
+            bigquery.SchemaField("generation_date", "TIMESTAMP", mode="REQUIRED"),
+            bigquery.SchemaField("generation_status", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("last_reviewed_date", "TIMESTAMP", mode="NULLABLE"),
+            bigquery.SchemaField("review_status", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("generation_failure_msg", "STRING", mode="NULLABLE"),
+            bigquery.SchemaField("media_type", "STRING", mode="NULLABLE"),
+            bigquery.SchemaField("media_format", "STRING", mode="NULLABLE"),
+            bigquery.SchemaField("generated_by", "STRING", mode="NULLABLE"),
+            bigquery.SchemaField("reviewed_by", "STRING", mode="NULLABLE"),
+        ]
+        table = bigquery.Table(table_ref, schema=schema)
+        client.create_table(table)
+        print(f"Created BigQuery status table: {bq_dataset}.{bq_status_table}")
+        return f"{project_id}.{bq_dataset}.{bq_status_table}"
+
+def start_media_generation_status(
+    product_id: str,
+    filename: str,
+    old_lifestyle_media_file_name: Optional[str] = None,
+    generated_by: Optional[str] = None
+) -> None:
+    """Inserts a PENDING log or updates the existing rejected log to PENDING in BigQuery."""
+    client = get_bq_client()
+    table_fullname = _ensure_status_table_exists(client)
+    from datetime import datetime
+    now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+
+    ext = filename.lower().split(".")[-1]
+    media_format = ext.upper()
+    if ext in ("jpg", "jpeg", "png"):
+        media_type = "Image"
+    elif ext == "mp4":
+        media_type = "Video"
+    else:
+        media_type = "Unknown"
+
+    if old_lifestyle_media_file_name:
+        # Update existing record
+        query = f"""
+            UPDATE `{table_fullname}`
+            SET lifestyle_media_file_name = @new_lifestyle_media_file_name,
+                gcs_authenticated_file_path = NULL,
+                generation_status = 'PENDING',
+                last_reviewed_date = NULL,
+                review_status = 'PENDING',
+                generation_failure_msg = NULL,
+                generation_date = @generation_date,
+                media_type = @media_type,
+                media_format = @media_format,
+                generated_by = @generated_by,
+                reviewed_by = NULL
+            WHERE product_id = @product_id AND lifestyle_media_file_name = @old_lifestyle_media_file_name
+        """
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("new_lifestyle_media_file_name", "STRING", filename),
+                bigquery.ScalarQueryParameter("generation_date", "TIMESTAMP", now_str),
+                bigquery.ScalarQueryParameter("product_id", "STRING", product_id),
+                bigquery.ScalarQueryParameter("old_lifestyle_media_file_name", "STRING", old_lifestyle_media_file_name),
+                bigquery.ScalarQueryParameter("media_type", "STRING", media_type),
+                bigquery.ScalarQueryParameter("media_format", "STRING", media_format),
+                bigquery.ScalarQueryParameter("generated_by", "STRING", generated_by),
+            ]
+        )
+    else:
+        # Insert a new record
+        query = f"""
+            INSERT INTO `{table_fullname}` (
+                product_id,
+                lifestyle_media_file_name,
+                gcs_authenticated_file_path,
+                generation_date,
+                generation_status,
+                last_reviewed_date,
+                review_status,
+                generation_failure_msg,
+                media_type,
+                media_format,
+                generated_by,
+                reviewed_by
+            ) VALUES (
+                @product_id,
+                @lifestyle_media_file_name,
+                NULL,
+                @generation_date,
+                'PENDING',
+                NULL,
+                'PENDING',
+                NULL,
+                @media_type,
+                @media_format,
+                @generated_by,
+                NULL
+            )
+        """
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("product_id", "STRING", product_id),
+                bigquery.ScalarQueryParameter("lifestyle_media_file_name", "STRING", filename),
+                bigquery.ScalarQueryParameter("generation_date", "TIMESTAMP", now_str),
+                bigquery.ScalarQueryParameter("media_type", "STRING", media_type),
+                bigquery.ScalarQueryParameter("media_format", "STRING", media_format),
+                bigquery.ScalarQueryParameter("generated_by", "STRING", generated_by),
+            ]
+        )
+    query_job = client.query(query, job_config=job_config)
+    query_job.result()
+
+
+def update_media_generation_status_result(
+    product_id: str,
+    lifestyle_media_file_name: str,
+    generation_status: str,
+    gcs_authenticated_file_path: Optional[str] = None,
+    generation_failure_msg: Optional[str] = None
+) -> None:
+    """Updates an existing media generation log row in BigQuery with success/failure results."""
+    client = get_bq_client()
+    table_fullname = _ensure_status_table_exists(client)
+    from datetime import datetime
+    now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+
+    query = f"""
+        UPDATE `{table_fullname}`
+        SET generation_status = @generation_status,
+            gcs_authenticated_file_path = @gcs_authenticated_file_path,
+            generation_failure_msg = @generation_failure_msg,
+            generation_date = @generation_date
+        WHERE product_id = @product_id AND lifestyle_media_file_name = @lifestyle_media_file_name
+    """
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("generation_status", "STRING", generation_status),
+            bigquery.ScalarQueryParameter("gcs_authenticated_file_path", "STRING", gcs_authenticated_file_path),
+            bigquery.ScalarQueryParameter("generation_failure_msg", "STRING", generation_failure_msg),
+            bigquery.ScalarQueryParameter("generation_date", "TIMESTAMP", now_str),
+            bigquery.ScalarQueryParameter("product_id", "STRING", product_id),
+            bigquery.ScalarQueryParameter("lifestyle_media_file_name", "STRING", lifestyle_media_file_name),
+        ]
+    )
+    query_job = client.query(query, job_config=job_config)
+    query_job.result()
+
+
+def log_media_generation_status(
+    product_id: str,
+    lifestyle_media_file_name: str,
+    gcs_authenticated_file_path: Optional[str],
+    generation_status: str,
+    generation_failure_msg: Optional[str] = None
+) -> str:
+    """Inserts a row into the media generation status BigQuery table log.
+    
+    Args:
+        product_id: The product ID.
+        lifestyle_media_file_name: The file name of the image/video.
+        gcs_authenticated_file_path: The authenticated HTTPS URL to the GCS file (None if failed).
+        generation_status: "SUCCESS" or "FAILURE".
+        generation_failure_msg: The error message if failed.
+        
+    Returns:
+        A JSON string indicating success or failure of the logging operation.
+    """
+    try:
+        client = get_bq_client()
+        table_fullname = _ensure_status_table_exists(client)
+        
+        from datetime import datetime
+        now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        
+        query = f"""
+            INSERT INTO `{table_fullname}` (
+                product_id,
+                lifestyle_media_file_name,
+                gcs_authenticated_file_path,
+                generation_date,
+                generation_status,
+                last_reviewed_date,
+                review_status,
+                generation_failure_msg
+            ) VALUES (
+                @product_id,
+                @lifestyle_media_file_name,
+                @gcs_authenticated_file_path,
+                @generation_date,
+                @generation_status,
+                NULL,
+                'PENDING',
+                @generation_failure_msg
+            )
+        """
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("product_id", "STRING", product_id),
+                bigquery.ScalarQueryParameter("lifestyle_media_file_name", "STRING", lifestyle_media_file_name),
+                bigquery.ScalarQueryParameter("gcs_authenticated_file_path", "STRING", gcs_authenticated_file_path),
+                bigquery.ScalarQueryParameter("generation_date", "TIMESTAMP", now_str),
+                bigquery.ScalarQueryParameter("generation_status", "STRING", generation_status),
+                bigquery.ScalarQueryParameter("generation_failure_msg", "STRING", generation_failure_msg),
+            ]
+        )
+        query_job = client.query(query, job_config=job_config)
+        query_job.result() # Wait for completion
+            
+        return json.dumps({"status": "success", "message": "Log entry inserted successfully."})
+    except Exception as e:
+        return json.dumps({"status": "error", "message": f"Failed to insert log: {str(e)}"})
+
+def approve_media_review(
+    product_id: str,
+    lifestyle_media_file_name: str,
+    tool_context: ToolContext = None
+) -> str:
+    """Updates the review status of a generated media file to APPROVED in the status table.
+    
+    Args:
+        product_id: The product ID.
+        lifestyle_media_file_name: The file name of the reviewed media.
+        
+    Returns:
+        A JSON string indicating success or failure of the update operation.
+    """
+    try:
+        client = get_bq_client()
+        table_fullname = _ensure_status_table_exists(client)
+        
+        from datetime import datetime
+        now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        
+        reviewer = tool_context.user_id if tool_context else None
+
+        query = f"""
+            UPDATE `{table_fullname}`
+            SET review_status = 'APPROVED', 
+                last_reviewed_date = @now,
+                reviewed_by = @reviewed_by
+            WHERE product_id = @product_id AND lifestyle_media_file_name = @lifestyle_media_file_name
+        """
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("now", "TIMESTAMP", now_str),
+                bigquery.ScalarQueryParameter("product_id", "STRING", product_id),
+                bigquery.ScalarQueryParameter("lifestyle_media_file_name", "STRING", lifestyle_media_file_name),
+                bigquery.ScalarQueryParameter("reviewed_by", "STRING", reviewer),
+            ]
+        )
+        query_job = client.query(query, job_config=job_config)
+        query_job.result() # Wait for completion
+        
+        return json.dumps({"status": "success", "message": f"Successfully approved {lifestyle_media_file_name}."})
+    except Exception as e:
+        return json.dumps({"status": "error", "message": f"Failed to approve review: {str(e)}"})
+
+def update_regenerated_media_status(
+    product_id: str,
+    old_lifestyle_media_file_name: str,
+    new_lifestyle_media_file_name: str,
+    new_gcs_authenticated_file_path: str,
+    tool_context: ToolContext = None
+) -> str:
+    """Updates a status table row with the newly regenerated media details.
+    
+    Args:
+        product_id: The product ID.
+        old_lifestyle_media_file_name: The file name of the old (rejected) media.
+        new_lifestyle_media_file_name: The file name of the newly generated media.
+        new_gcs_authenticated_file_path: The authenticated HTTPS URL to the new file.
+        
+    Returns:
+        A JSON string indicating success or failure of the update operation.
+    """
+    try:
+        client = get_bq_client()
+        table_fullname = _ensure_status_table_exists(client)
+        
+        from datetime import datetime
+        now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        
+        generated_by = tool_context.user_id if tool_context else None
+
+        ext = new_lifestyle_media_file_name.lower().split(".")[-1]
+        media_format = ext.upper()
+        if ext in ("jpg", "jpeg", "png"):
+            media_type = "Image"
+        elif ext == "mp4":
+            media_type = "Video"
+        else:
+            media_type = "Unknown"
+
+        query = f"""
+            UPDATE `{table_fullname}`
+            SET lifestyle_media_file_name = @new_lifestyle_media_file_name,
+                gcs_authenticated_file_path = @new_gcs_authenticated_file_path,
+                generation_status = 'SUCCESS',
+                last_reviewed_date = @now,
+                review_status = 'PENDING',
+                generation_failure_msg = NULL,
+                media_type = @media_type,
+                media_format = @media_format,
+                generated_by = @generated_by,
+                reviewed_by = NULL
+            WHERE product_id = @product_id AND lifestyle_media_file_name = @old_lifestyle_media_file_name
+        """
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("new_lifestyle_media_file_name", "STRING", new_lifestyle_media_file_name),
+                bigquery.ScalarQueryParameter("new_gcs_authenticated_file_path", "STRING", new_gcs_authenticated_file_path),
+                bigquery.ScalarQueryParameter("now", "TIMESTAMP", now_str),
+                bigquery.ScalarQueryParameter("product_id", "STRING", product_id),
+                bigquery.ScalarQueryParameter("old_lifestyle_media_file_name", "STRING", old_lifestyle_media_file_name),
+                bigquery.ScalarQueryParameter("media_type", "STRING", media_type),
+                bigquery.ScalarQueryParameter("media_format", "STRING", media_format),
+                bigquery.ScalarQueryParameter("generated_by", "STRING", generated_by),
+            ]
+        )
+        query_job = client.query(query, job_config=job_config)
+        query_job.result() # Wait for completion
+        
+        return json.dumps({"status": "success", "message": f"Successfully updated regeneration status for product {product_id}."})
+    except Exception as e:
+        return json.dumps({"status": "error", "message": f"Failed to update regeneration status: {str(e)}"})
 
 # Cloud Storage Configuration
 gcs_bucket = os.environ.get("GCS_BUCKET", "at_home_product_lifestyle_content")
@@ -61,7 +399,7 @@ _storage_client = None
 def get_bq_client():
     global _bq_client
     if _bq_client is None:
-        _bq_client = bigquery.Client(project=project_id, location="us-central1")
+        _bq_client = bigquery.Client(project=project_id, location=bq_location)
     return _bq_client
 
 def get_storage_client():
@@ -201,7 +539,12 @@ def get_product_details(product_id: str = None, limit: int = 5) -> str:
         return json.dumps({"status": "error", "message": f"Failed to query catalog. Error: {str(e)}"})
 
 
-def generate_and_save_lifestyle_image(product_id: str, additional_instructions: str = "") -> str:
+def generate_and_save_lifestyle_image(
+    product_id: str,
+    additional_instructions: str = "",
+    old_lifestyle_media_file_name: Optional[str] = None,
+    tool_context: ToolContext = None
+) -> str:
     """Generates a high-quality professional lifestyle photography image for a given product ID and saves it to Cloud Storage.
 
     Args:
@@ -211,10 +554,53 @@ def generate_and_save_lifestyle_image(product_id: str, additional_instructions: 
     Returns:
         A JSON-formatted string containing success status, the GCS path, and authenticated HTTPS link, or a detailed error message.
     """
+    from datetime import datetime
+    generation_time = datetime.utcnow()
+    current_date = generation_time.strftime("%Y%m%d")
+    current_time = generation_time.strftime("%H%M%S")
+    filename = f"{product_id}-{current_date}-{current_time}.jpg"
+    destination_blob = f"product_images/{product_id}/{filename}"
+
+    generated_by = tool_context.user_id if tool_context else None
+
+    def _log_failure(msg: str):
+        try:
+            update_media_generation_status_result(
+                product_id=product_id,
+                lifestyle_media_file_name=filename,
+                generation_status="FAILURE",
+                generation_failure_msg=msg
+            )
+        except Exception as le:
+            print(f"Failed to log failure to BigQuery: {le}")
+
     try:
         rows = _fetch_bq_rows(product_id=product_id)
         if not rows:
+            # If product ID is invalid, log failure directly to database and return
+            try:
+                log_media_generation_status(
+                    product_id=product_id,
+                    lifestyle_media_file_name=filename,
+                    gcs_authenticated_file_path=None,
+                    generation_status="FAILURE",
+                    generation_failure_msg=f"Product ID {product_id} not found in BigQuery catalog.",
+                    generated_by=generated_by
+                )
+            except Exception as le:
+                print(f"Failed to log catalog failure to BigQuery: {le}")
             return json.dumps({"status": "error", "message": f"Product ID {product_id} not found in BigQuery catalog."})
+
+        # Insert a new record or update the existing rejected record to PENDING
+        try:
+            start_media_generation_status(
+                product_id=product_id,
+                filename=filename,
+                old_lifestyle_media_file_name=old_lifestyle_media_file_name,
+                generated_by=generated_by
+            )
+        except Exception as se:
+            print(f"Failed to record start of media generation to BigQuery: {se}")
         
         row = rows[0]
         product_name = row["product-name"] or ""
@@ -238,9 +624,10 @@ def generate_and_save_lifestyle_image(product_id: str, additional_instructions: 
                         image_urls.append(url)
             except Exception as e:
                 print(f"Error parsing cloudinaryProductImages: {e}")
-
         if not image_urls:
-            return json.dumps({"status": "error", "message": f"No valid reference image URL found for product ID {product_id}."})
+            msg = f"No valid reference image URL found for product ID {product_id}."
+            _log_failure(msg)
+            return json.dumps({"status": "error", "message": msg})
 
         # Download reference images
         image_data_list = []
@@ -253,8 +640,9 @@ def generate_and_save_lifestyle_image(product_id: str, additional_instructions: 
                 print(f"Error downloading reference image {url}: {e}")
 
         if not image_data_list:
-            return json.dumps({"status": "error", "message": f"Failed to download any reference images for product ID {product_id}."})
-
+            msg = f"Failed to download any reference images for product ID {product_id}."
+            _log_failure(msg)
+            return json.dumps({"status": "error", "message": msg})
         # Initialize standard GenAI Client
         client = genai.Client(vertexai=True, project=project_id, location=gemini_location)
         
@@ -338,7 +726,9 @@ def generate_and_save_lifestyle_image(product_id: str, additional_instructions: 
                         image_bytes += part.inline_data.data
                         
         if not image_bytes:
-            return json.dumps({"status": "error", "message": f"Gemini API returned empty image bytes for product ID {product_id}."})
+            msg = f"Gemini API returned empty image bytes for product ID {product_id}."
+            _log_failure(msg)
+            return json.dumps({"status": "error", "message": msg})
 
         # Resize to exact target dimensions (1800x1800 JPEG). The Gemini image API only
         # accepts size presets ("2K") rather than exact pixel dimensions, so we downscale
@@ -348,14 +738,6 @@ def generate_and_save_lifestyle_image(product_id: str, additional_instructions: 
         output_buffer = io.BytesIO()
         resized_image.save(output_buffer, format="JPEG", quality=95)
         image_bytes = output_buffer.getvalue()
-
-        # Save to GCS
-        now = datetime.now()
-        current_date = now.strftime("%Y%m%d")
-        current_time = now.strftime("%H%M%S")
-        filename = f"{product_id}-{current_date}-{current_time}.jpg"
-        destination_blob = f"product_images/{product_id}/{filename}"
-        
         success = _upload_to_gcs(
             bucket_name=gcs_bucket,
             destination_blob_name=destination_blob,
@@ -367,6 +749,17 @@ def generate_and_save_lifestyle_image(product_id: str, additional_instructions: 
             gcs_uri = f"gs://{gcs_bucket}/{destination_blob}"
             http_url = _get_gcs_url(gcs_bucket, destination_blob)
             public_url = _get_public_url(gcs_bucket, destination_blob)
+
+            # Update status to success in BigQuery
+            try:
+                update_media_generation_status_result(
+                    product_id=product_id,
+                    lifestyle_media_file_name=filename,
+                    generation_status="SUCCESS",
+                    gcs_authenticated_file_path=http_url
+                )
+            except Exception as le:
+                print(f"Failed to update success status in BigQuery: {le}")
             return json.dumps({
                 "status": "success",
                 "gcs_uri": gcs_uri,
@@ -381,13 +774,22 @@ def generate_and_save_lifestyle_image(product_id: str, additional_instructions: 
                 }
             }, indent=2)
         else:
-            return json.dumps({"status": "error", "message": "Failed to upload the generated image to Cloud Storage."})
+            msg = "Failed to upload the generated image to Cloud Storage."
+            _log_failure(msg)
+            return json.dumps({"status": "error", "message": msg})
             
     except Exception as e:
-        return json.dumps({"status": "error", "message": f"Error generating lifestyle image for product {product_id}: {str(e)}"})
+        msg = f"Error generating lifestyle image for product {product_id}: {str(e)}"
+        _log_failure(msg)
+        return json.dumps({"status": "error", "message": msg})
 
 
-def generate_and_save_lifestyle_video(product_id: str, additional_instructions: str = "") -> str:
+def generate_and_save_lifestyle_video(
+    product_id: str,
+    additional_instructions: str = "",
+    old_lifestyle_media_file_name: Optional[str] = None,
+    tool_context: ToolContext = None
+) -> str:
     """Generates a high-quality professional 8-second lifestyle video shot for a given product ID and saves it to Cloud Storage.
 
     Args:
@@ -397,10 +799,53 @@ def generate_and_save_lifestyle_video(product_id: str, additional_instructions: 
     Returns:
         A JSON-formatted string containing success status, the GCS path, and authenticated HTTPS link, or a detailed error message.
     """
+    from datetime import datetime
+    generation_time = datetime.utcnow()
+    current_date = generation_time.strftime("%Y%m%d")
+    current_time = generation_time.strftime("%H%M%S")
+    filename = f"{product_id}-{current_date}-{current_time}.mp4"
+    destination_blob = f"product_videos/{product_id}/{filename}"
+
+    generated_by = tool_context.user_id if tool_context else None
+
+    def _log_failure(msg: str):
+        try:
+            update_media_generation_status_result(
+                product_id=product_id,
+                lifestyle_media_file_name=filename,
+                generation_status="FAILURE",
+                generation_failure_msg=msg
+            )
+        except Exception as le:
+            print(f"Failed to log failure to BigQuery: {le}")
+
     try:
         rows = _fetch_bq_rows(product_id=product_id)
         if not rows:
+            # If product ID is invalid, log failure directly to database and return
+            try:
+                log_media_generation_status(
+                    product_id=product_id,
+                    lifestyle_media_file_name=filename,
+                    gcs_authenticated_file_path=None,
+                    generation_status="FAILURE",
+                    generation_failure_msg=f"Product ID {product_id} not found in BigQuery catalog.",
+                    generated_by=generated_by
+                )
+            except Exception as le:
+                print(f"Failed to log catalog failure to BigQuery: {le}")
             return json.dumps({"status": "error", "message": f"Product ID {product_id} not found in BigQuery catalog."})
+
+        # Insert a new record or update the existing rejected record to PENDING
+        try:
+            start_media_generation_status(
+                product_id=product_id,
+                filename=filename,
+                old_lifestyle_media_file_name=old_lifestyle_media_file_name,
+                generated_by=generated_by
+            )
+        except Exception as se:
+            print(f"Failed to record start of media generation to BigQuery: {se}")
         
         row = rows[0]
         product_name = row["product-name"] or ""
@@ -423,7 +868,9 @@ def generate_and_save_lifestyle_video(product_id: str, additional_instructions: 
                 print(f"Error parsing cloudinaryProductImages: {e}")
                 
         if not image_url:
-            return json.dumps({"status": "error", "message": f"No valid reference image URL found for product ID {product_id}."})
+            msg = f"No valid reference image URL found for product ID {product_id}."
+            _log_failure(msg)
+            return json.dumps({"status": "error", "message": msg})
         
         # Download reference image
         img_response = requests.get(image_url)
@@ -486,7 +933,9 @@ def generate_and_save_lifestyle_video(product_id: str, additional_instructions: 
             err_msg = ""
             if hasattr(operation, 'error') and operation.error:
                 err_msg = f" Operation error: {operation.error}"
-            return json.dumps({"status": "error", "message": f"Veo model returned no generated videos.{err_msg}"})
+            msg = f"Veo model returned no generated videos.{err_msg}"
+            _log_failure(msg)
+            return json.dumps({"status": "error", "message": msg})
             
         generated_video = operation.response.generated_videos[0]
         video_bytes = generated_video.video.video_bytes
@@ -504,19 +953,18 @@ def generate_and_save_lifestyle_video(product_id: str, additional_instructions: 
                     src_blob = src_bucket.blob(src_blob_name)
                     video_bytes = src_blob.download_as_bytes()
                 except Exception as e:
-                    return json.dumps({"status": "error", "message": f"Failed to download video bytes from generated source bucket. Details: {str(e)}"})
+                    msg = f"Failed to download video bytes from generated source bucket. Details: {str(e)}"
+                    _log_failure(msg)
+                    return json.dumps({"status": "error", "message": msg})
             else:
-                return json.dumps({"status": "error", "message": f"Unexpected video URI format: {gcs_uri}"})
+                msg = f"Unexpected video URI format: {gcs_uri}"
+                _log_failure(msg)
+                return json.dumps({"status": "error", "message": msg})
         elif not video_bytes:
-            return json.dumps({"status": "error", "message": "No video bytes or GCS URI returned in Veo model response."})
+            msg = "No video bytes or GCS URI returned in Veo model response."
+            _log_failure(msg)
+            return json.dumps({"status": "error", "message": msg})
             
-        # Save to GCS
-        now = datetime.now()
-        current_date = now.strftime("%Y%m%d")
-        current_time = now.strftime("%H%M%S")
-        filename = f"{product_id}-{current_date}-{current_time}.mp4"
-        destination_blob = f"product_videos/{product_id}/{filename}"
-        
         success = _upload_to_gcs(
             bucket_name=gcs_bucket,
             destination_blob_name=destination_blob,
@@ -528,6 +976,17 @@ def generate_and_save_lifestyle_video(product_id: str, additional_instructions: 
             gcs_uri = f"gs://{gcs_bucket}/{destination_blob}"
             http_url = _get_gcs_url(gcs_bucket, destination_blob)
             public_url = _get_public_url(gcs_bucket, destination_blob)
+
+            # Update status to success in BigQuery
+            try:
+                update_media_generation_status_result(
+                    product_id=product_id,
+                    lifestyle_media_file_name=filename,
+                    generation_status="SUCCESS",
+                    gcs_authenticated_file_path=http_url
+                )
+            except Exception as le:
+                print(f"Failed to update success status in BigQuery: {le}")
             return json.dumps({
                 "status": "success",
                 "gcs_uri": gcs_uri,
@@ -542,7 +1001,11 @@ def generate_and_save_lifestyle_video(product_id: str, additional_instructions: 
                 }
             }, indent=2)
         else:
-            return json.dumps({"status": "error", "message": "Failed to upload the generated video to Cloud Storage."})
+            msg = "Failed to upload the generated video to Cloud Storage."
+            _log_failure(msg)
+            return json.dumps({"status": "error", "message": msg})
             
     except Exception as e:
-        return json.dumps({"status": "error", "message": f"Error generating lifestyle video for product {product_id}: {str(e)}"})
+        msg = f"Error generating lifestyle video for product {product_id}: {str(e)}"
+        _log_failure(msg)
+        return json.dumps({"status": "error", "message": msg})
