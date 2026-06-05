@@ -13,11 +13,13 @@
 # limitations under the License.
 
 import os
+import io
 import time
 import json
 import re
 import requests
 from datetime import datetime
+from PIL import Image
 
 try:
     from dotenv import load_dotenv
@@ -97,13 +99,13 @@ def _fetch_bq_rows(product_id: str = None, total_rows: int = 5) -> list:
     """Private helper to query BigQuery catalog."""
     if product_id:
         query = f"""
-            SELECT `product-id`, `product-name`, primaryCategoryName, `short-description`, cloudinaryProductImages
+            SELECT `product-id`, `product-name`, primaryCategoryName, `short-description`, Dimensions, cloudinaryProductImages
             FROM `{project_id}.{bq_dataset}.{bq_table}`
             WHERE `product-id` = '{product_id}'
         """
     else:
         query = f"""
-            SELECT `product-id`, `product-name`, primaryCategoryName, `short-description`, cloudinaryProductImages
+            SELECT `product-id`, `product-name`, primaryCategoryName, `short-description`, Dimensions, cloudinaryProductImages
             FROM `{project_id}.{bq_dataset}.{bq_table}`
             LIMIT {total_rows}
         """
@@ -218,7 +220,8 @@ def generate_and_save_lifestyle_image(product_id: str, additional_instructions: 
         product_name = row["product-name"] or ""
         primary_category = row["primaryCategoryName"] or ""
         short_desc = row["short-description"] or ""
-        
+        dimensions = row["Dimensions"] or ""
+
         # Clean description from HTML tags
         clean_desc = re.sub('<[^<]+?>', ' ', short_desc)
         clean_desc = " ".join(clean_desc.split())
@@ -262,14 +265,19 @@ def generate_and_save_lifestyle_image(product_id: str, additional_instructions: 
             f"Product name: {product_name}\n\n"
             f"Product Category: {primary_category}\n\n"
             f"Product Description: {clean_desc}\n\n"
+            f"Product Dimensions: {dimensions}\n\n"
             "Image generation instructions:\n"
             "The product must be perfectly integrated into a lifestyle setting.\n"
+            "Use the provided product dimensions to render the product at a realistic, true-to-life scale "
+            "relative to other objects and the surrounding environment.\n"
             "Use the attached reference image(s) to understand the exact product from multiple angles. "
             "The exact product from the reference images must be seamlessly blended into the new environment, "
             "preserving its original details and color. Adapt naturally to the new lighting, cast shadows, perspective, and reflections.\n"
             "Only depict the product from angles and sides that are actually visible in the reference image(s). "
             "If a particular side or angle (e.g., the back or a side view) is not shown in any reference image, do NOT invent, guess, or fabricate it. "
-            "Instead, compose the scene so the product is shown only from angles supported by the references, keeping unseen parts out of view or naturally occluded."
+            "Instead, compose the scene so the product is shown only from angles supported by the references, keeping unseen parts out of view or naturally occluded.\n"
+            "Make sure the subject is mostly centered in the frame and the shot is either a full shot or a medium full shot.\n"
+            "Do not use product labels or alcohol in the scene."
         )
         
         if additional_instructions:
@@ -331,7 +339,16 @@ def generate_and_save_lifestyle_image(product_id: str, additional_instructions: 
                         
         if not image_bytes:
             return json.dumps({"status": "error", "message": f"Gemini API returned empty image bytes for product ID {product_id}."})
-            
+
+        # Resize to exact target dimensions (1800x1800 JPEG). The Gemini image API only
+        # accepts size presets ("2K") rather than exact pixel dimensions, so we downscale
+        # the generated image to the required output size before upload.
+        source_image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        resized_image = source_image.resize((1800, 1800), Image.LANCZOS)
+        output_buffer = io.BytesIO()
+        resized_image.save(output_buffer, format="JPEG", quality=95)
+        image_bytes = output_buffer.getvalue()
+
         # Save to GCS
         now = datetime.now()
         current_date = now.strftime("%Y%m%d")
@@ -389,7 +406,8 @@ def generate_and_save_lifestyle_video(product_id: str, additional_instructions: 
         product_name = row["product-name"] or ""
         primary_category = row["primaryCategoryName"] or ""
         short_desc = row["short-description"] or ""
-        
+        dimensions = row["Dimensions"] or ""
+
         # Clean description
         clean_desc = re.sub('<[^<]+?>', ' ', short_desc)
         clean_desc = " ".join(clean_desc.split())
@@ -422,8 +440,11 @@ def generate_and_save_lifestyle_video(product_id: str, additional_instructions: 
             f"Product name: {product_name}\n\n"
             f"Product Category: {primary_category}\n\n"
             f"Product Description: {clean_desc}\n\n"
+            f"Product Dimensions: {dimensions}\n\n"
             "Video generation instructions:\n"
             "The product must be perfectly integrated into a lifestyle setting.\n"
+            "Use the provided product dimensions to render the product at a realistic, true-to-life scale "
+            "relative to other objects and the surrounding environment.\n"
             "The exact product from the reference image must be seamlessly blended into the new environment, preserving its original details and color. Adapt naturally to the new lighting, cast shadows, perspective, and reflections."
         )
         if additional_instructions:
