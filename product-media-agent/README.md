@@ -130,7 +130,7 @@ GOOGLE_API_USE_MTLS_ENDPOINT=never
 
 ---
 
-### Step 2: Install Dependencies
+### Step 2.a: Install Dependencies
 Ensure the virtual environment is active, then install all Python dependencies using `agents-cli`:
 ```bash
 agents-cli install
@@ -138,7 +138,7 @@ agents-cli install
 
 ---
 
-### Step 2.b: Provision and Populate GCP Resources (BigQuery & GCS)
+### Step 2.b (Optional - Only execute if your GCP project does not have BigQuery and Cloud Storage resources provisioned): Provision and Populate GCP Resources (BigQuery & GCS)
 To run the agent, you need a BigQuery product catalog table containing source product details and a GCS bucket containing reference product images. 
 
 We provide a comprehensive setup script `setup_gcp.py` that automates this. The script:
