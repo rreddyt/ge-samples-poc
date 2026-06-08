@@ -234,7 +234,7 @@ SYSTEM_INSTRUCTION = f"{ROLE_DESCRIPTION}\n\n{WORKFLOW_DESCRIPTION}"
 
 root_agent = Agent(
     name="root_agent",
-    model="gemini-2.5-pro",
+    model="gemini-3.5-flash",
     planner=BuiltInPlanner(
         thinking_config=types.ThinkingConfig(
             thinking_budget=2048,
