@@ -35,14 +35,22 @@ load_dotenv()
 class AgentEngineApp(AdkApp):
     def set_up(self) -> None:
         """Initialize the agent engine app with logging and telemetry."""
-        vertexai.init()
+        if gemini_location:
+            os.environ["GOOGLE_CLOUD_LOCATION"] = gemini_location
+        project_id = os.environ.get("GCP_PROJECT_ID")
+        
+        # vertexai.init() does not support 'us' or 'eu' multi-regions in the legacy SDK.
+        # We fall back to 'us-central1' for the legacy init, while keeping 'us' in the env.
+        legacy_location = gemini_location
+        if legacy_location in ("us", "eu"):
+            legacy_location = "us-central1"
+            
+        vertexai.init(project=project_id, location=legacy_location)
         setup_telemetry()
         super().set_up()
         logging.basicConfig(level=logging.INFO)
         logging_client = google_cloud_logging.Client()
         self.logger = logging_client.logger(__name__)
-        if gemini_location:
-            os.environ["GOOGLE_CLOUD_LOCATION"] = gemini_location
 
     def register_feedback(self, feedback: dict[str, Any]) -> None:
         """Collect and log feedback."""
@@ -56,7 +64,7 @@ class AgentEngineApp(AdkApp):
         return operations
 
 
-gemini_location = os.environ.get("GOOGLE_CLOUD_LOCATION")
+gemini_location = os.environ.get("GOOGLE_CLOUD_LOCATION", os.environ.get("GEMINI_LOCATION"))
 logs_bucket_name = os.environ.get("LOGS_BUCKET_NAME")
 
 def build_artifact_service():

@@ -43,6 +43,7 @@ _, project_default = google.auth.default()
 project_id = os.environ.get("GCP_PROJECT_ID", project_default)
 gemini_location = os.environ.get("GEMINI_LOCATION", os.environ.get("GCP_LOCATION", "us-central1"))
 veo_location = os.environ.get("VEO_LOCATION", "us-central1")
+image_location = os.environ.get("IMAGE_LOCATION", "global")
 
 os.environ["GOOGLE_CLOUD_PROJECT"] = project_id
 os.environ["GOOGLE_CLOUD_LOCATION"] = gemini_location
@@ -434,21 +435,40 @@ def _get_public_url(bucket_name: str, blob_name: str) -> str:
     return f"https://storage.googleapis.com/{bucket_name}/{blob_name}"
 
 def _fetch_bq_rows(product_id: str = None, total_rows: int = 5) -> list:
-    """Private helper to query BigQuery catalog."""
-    if product_id:
-        query = f"""
-            SELECT `product-id`, `product-name`, primaryCategoryName, `short-description`, Dimensions, cloudinaryProductImages
-            FROM `{project_id}.{bq_dataset}.{bq_table}`
-            WHERE `product-id` = '{product_id}'
-        """
-    else:
-        query = f"""
-            SELECT `product-id`, `product-name`, primaryCategoryName, `short-description`, Dimensions, cloudinaryProductImages
-            FROM `{project_id}.{bq_dataset}.{bq_table}`
-            LIMIT {total_rows}
-        """
-    query_job = get_bq_client().query(query)
-    return list(query_job.result())
+    """Private helper to query BigQuery catalog with a fallback if Dimensions column is missing."""
+    from google.api_core.exceptions import BadRequest
+
+    def run_query(select_dimensions: bool) -> list:
+        dim_col = ", Dimensions" if select_dimensions else ""
+        if product_id:
+            query = f"""
+                SELECT `product-id`, `product-name`, primaryCategoryName, `short-description`{dim_col}, cloudinaryProductImages
+                FROM `{project_id}.{bq_dataset}.{bq_table}`
+                WHERE `product-id` = '{product_id}'
+            """
+        else:
+            query = f"""
+                SELECT `product-id`, `product-name`, primaryCategoryName, `short-description`{dim_col}, cloudinaryProductImages
+                FROM `{project_id}.{bq_dataset}.{bq_table}`
+                LIMIT {total_rows}
+            """
+        query_job = get_bq_client().query(query)
+        return list(query_job.result())
+
+    try:
+        # Try querying with Dimensions first
+        return [dict(row) for row in run_query(select_dimensions=True)]
+    except BadRequest as e:
+        if "Dimensions" in str(e):
+            print("Dimensions column not found in BigQuery catalog schema. Falling back to query without Dimensions.")
+            # Fallback to query without Dimensions, and inject an empty Dimensions key for compatibility
+            rows = []
+            for row in run_query(select_dimensions=False):
+                row_dict = dict(row)
+                row_dict["Dimensions"] = ""
+                rows.append(row_dict)
+            return rows
+        raise e
 
 def _upload_to_gcs(bucket_name: str, destination_blob_name: str, data_bytes: bytes, content_type: str = "image/jpeg") -> bool:
     """Private helper to upload generated media to GCS with fallbacks."""
@@ -644,7 +664,7 @@ def generate_and_save_lifestyle_image(
             _log_failure(msg)
             return json.dumps({"status": "error", "message": msg})
         # Initialize standard GenAI Client
-        client = genai.Client(vertexai=True, project=project_id, location=gemini_location)
+        client = genai.Client(vertexai=True, project=project_id, location=image_location)
         
         # Construct Lifestyle Image Prompt
         prompt_text = (
