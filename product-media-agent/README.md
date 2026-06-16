@@ -218,7 +218,7 @@ Once local testing is complete, deploy your agent directly to the Agent Platform
 agents-cli deploy \
   --project <YOUR_GCP_PROJECT_ID> \
   --region us-central1 \
-  --update-env-vars "GCP_PROJECT_ID=<YOUR_GCP_PROJECT_ID>,GEMINI_LOCATION=global,VEO_LOCATION=us-central1,BQ_DATASET=<YOUR_BQ_DATASET_NAME>,BQ_TABLE=<YOUR_BQ_TABLE_NAME>,BQ_STATUS_TABLE=media_generation_status,BQ_LOCATION=us-central1,GCS_BUCKET=<YOUR_GCS_BUCKET_NAME>"
+  --update-env-vars "GCP_PROJECT_ID=<YOUR_GCP_PROJECT_ID>,GEMINI_LOCATION=global,VEO_LOCATION=us-central1,IMAGE_LOCATION=global,BQ_DATASET=<YOUR_BQ_DATASET_NAME>,BQ_TABLE=<YOUR_BQ_TABLE_NAME>,BQ_STATUS_TABLE=media_generation_status,BQ_LOCATION=us-central1,GCS_BUCKET=<YOUR_GCS_BUCKET_NAME>"
 ```
 Upon successful completion, `agents-cli` will print the deployed **Reasoning Engine resource path** (e.g., `projects/<your-project-id>/locations/us-central1/reasoningEngines/<engine-id>`) and automatically write it to the local `deployment_metadata.json` file.
 

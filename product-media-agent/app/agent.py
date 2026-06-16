@@ -17,6 +17,18 @@ from google.adk.apps import App
 from google.adk.planners.built_in_planner import BuiltInPlanner
 from google.genai import types
 import os
+from google.adk.models import Gemini
+from google.genai import Client
+
+class ConfiguredGemini(Gemini):
+    @property
+    def api_client(self) -> Client:
+        from app.tools import project_id, gemini_location
+        import os
+        os.environ["GOOGLE_API_USE_CLIENT_CERTIFICATE"] = "false"
+        os.environ["GOOGLE_API_USE_MTLS_ENDPOINT"] = "never"
+        return Client(vertexai=True, project=project_id, location=gemini_location)
+
 
 from app.tools import (
     get_product_details,
@@ -128,7 +140,7 @@ def attach_media_bytes_to_response(
 # Sub-Agent A: Dedicated image generator using gemini-3.1-flash-image
 image_generation_agent = Agent(
     name="image_generation_agent",
-    model="gemini-3.5-flash",
+    model=ConfiguredGemini(model="gemini-3.5-flash"),
     planner=BuiltInPlanner(
         thinking_config=types.ThinkingConfig(
             thinking_budget=1024,
@@ -151,12 +163,13 @@ image_generation_agent = Agent(
       - Transfer control to the `review_sub_agent` using the `transfer_to_agent` tool to begin the review loop.
     - If the user chooses to skip (says "no", "Skip", or "SkipReview"), conclude the session professionally.""",
     tools=[generate_and_save_lifestyle_image],
+    after_model_callback=attach_media_bytes_to_response,
 )
 
 # Sub-Agent B: Dedicated video generator using veo-3.1-fast-generate-001
 video_generation_agent = Agent(
     name="video_generation_agent",
-    model="gemini-3.5-flash",
+    model=ConfiguredGemini(model="gemini-3.5-flash"),
     planner=BuiltInPlanner(
         thinking_config=types.ThinkingConfig(
             thinking_budget=1024,
@@ -179,12 +192,13 @@ video_generation_agent = Agent(
       - Transfer control to the `review_sub_agent` using the `transfer_to_agent` tool to begin the review loop.
     - If the user chooses to skip (says "no", "Skip", or "SkipReview"), conclude the session professionally.""",
     tools=[generate_and_save_lifestyle_video],
+    after_model_callback=attach_media_bytes_to_response,
 )
 
 # Sub-Agent C: Dedicated Image/Video Review Specialist
 review_sub_agent = Agent(
     name="review_sub_agent",
-    model="gemini-3.5-flash",
+    model=ConfiguredGemini(model="gemini-3.5-flash"),
     planner=BuiltInPlanner(
         thinking_config=types.ThinkingConfig(
             thinking_budget=2048,
@@ -242,7 +256,7 @@ SYSTEM_INSTRUCTION = f"{ROLE_DESCRIPTION}\n\n{WORKFLOW_DESCRIPTION}"
 
 root_agent = Agent(
     name="root_agent",
-    model="gemini-3.5-flash",
+    model=ConfiguredGemini(model="gemini-3.5-flash"),
     planner=BuiltInPlanner(
         thinking_config=types.ThinkingConfig(
             thinking_budget=2048,
