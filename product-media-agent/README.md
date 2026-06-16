@@ -111,13 +111,14 @@ Edit the `.env` file and set your configuration parameters to match your Google 
 GCP_PROJECT_ID=your-gcp-project-id
 
 # Endpoint regions for Vertex AI models
-GEMINI_LOCATION=global
+GEMINI_LOCATION=us
 VEO_LOCATION=us-central1
+IMAGE_LOCATION=global
 
 # BigQuery Configuration
-BQ_DATASET=at_home_dataset
-BQ_TABLE=product_main_catalog
-BQ_STATUS_TABLE=media_generation_status
+BQ_DATASET=your-bq-dataset
+BQ_TABLE=your-product-catalog-table
+BQ_STATUS_TABLE=your-media-generation-status-table
 BQ_LOCATION=us-central1
 
 # Cloud Storage Configuration
